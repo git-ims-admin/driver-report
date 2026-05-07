@@ -1,0 +1,226 @@
+/* =============================================================
+   勤怠管理 | 長距離ドライバー - admin.css
+   ============================================================= */
+
+/* ---- ラップ ---- */
+.dr-wrap {
+    max-width: 1100px;
+    margin: 20px auto 40px;
+    font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "メイリオ", sans-serif;
+}
+
+/* ---- ページヘッダー ---- */
+.dr-page-header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2e6da4 100%);
+    color: #fff;
+    border-radius: 8px;
+    padding: 22px 28px 18px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+
+.dr-page-title {
+    font-size: 22px !important;
+    font-weight: 700;
+    margin: 0 0 6px !important;
+    color: #fff !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dr-page-title .dashicons {
+    font-size: 26px;
+    width: 26px;
+    height: 26px;
+}
+
+.dr-page-desc {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(255,255,255,.82);
+}
+
+/* ---- カード ---- */
+.dr-card {
+    background: #fff;
+    border: 1px solid #dde3ea;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.dr-card-header {
+    background: #f4f7fb;
+    border-bottom: 1px solid #dde3ea;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e3a5f;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dr-card-header .dashicons {
+    color: #2e6da4;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.dr-card-body {
+    padding: 22px 24px;
+}
+
+/* ---- フォーム行 ---- */
+.dr-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 20px;
+}
+
+.dr-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dr-form-group--btn {
+    padding-bottom: 1px;
+}
+
+.dr-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #444;
+    letter-spacing: .03em;
+}
+
+/* ---- セレクト ---- */
+.dr-select {
+    height: 38px;
+    min-width: 200px;
+    padding: 0 10px;
+    border: 1px solid #c3cdd8;
+    border-radius: 5px;
+    background: #fff;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    transition: border-color .2s;
+}
+
+.dr-select:focus {
+    outline: none;
+    border-color: #2e6da4;
+    box-shadow: 0 0 0 2px rgba(46,109,164,.18);
+}
+
+/* ---- 月入力 ---- */
+.dr-input-month {
+    height: 38px;
+    padding: 0 10px;
+    border: 1px solid #c3cdd8;
+    border-radius: 5px;
+    font-size: 14px;
+    color: #333;
+    background: #fff;
+    transition: border-color .2s;
+}
+
+.dr-input-month:focus {
+    outline: none;
+    border-color: #2e6da4;
+    box-shadow: 0 0 0 2px rgba(46,109,164,.18);
+}
+
+/* ---- ボタン ---- */
+.dr-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 18px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s, opacity .2s;
+    letter-spacing: .03em;
+}
+
+.dr-btn-primary {
+    background: #2e6da4;
+    color: #fff;
+}
+
+.dr-btn-primary:hover:not(:disabled) {
+    background: #1e5080;
+    color: #fff;
+}
+
+.dr-btn-primary:disabled {
+    background: #aac2da;
+    cursor: not-allowed;
+    opacity: .75;
+}
+
+.dr-btn .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+}
+
+/* ---- 集計結果エリア ---- */
+.dr-result-area {
+    animation: drFadeIn .3s ease;
+}
+
+@keyframes drFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.dr-placeholder {
+    color: #888;
+    font-size: 14px;
+    margin: 0;
+    padding: 10px 0;
+}
+
+/* ---- レスポンシブ ---- */
+@media (max-width: 768px) {
+    .dr-form-row {
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .dr-select,
+    .dr-input-month {
+        width: 100%;
+        min-width: unset;
+    }
+
+    .dr-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ---- エラーノーティス ---- */
+.dr-notice {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 5px;
+    font-size: 13px;
+}
+
+.dr-notice-error {
+    background: #fff0f0;
+    border-left: 4px solid #d63638;
+    color: #d63638;
+}
