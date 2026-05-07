@@ -2,13 +2,13 @@
 /**
  * Plugin Name: 勤怠管理 | 長距離ドライバー
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
- * Version:     1.0.4
+ * Version:     1.0.5
  * Author:      有限会社たんぽぽ運送
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.0.4' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.0.5' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -45,52 +45,74 @@ class Tanpopo_DriverReport {
     }
 
     /* ---------------------------------------------------------------
-     * ドライバー名を取得
-     * 実テーブル：wp_tenrec_daily
-     * entries カラムに JSON 配列で明細が入っている
-     * 例：[{"car":"青森830け20","driver":"山田太郎","dest":"東京",...}, ...]
+     * ドライバー名一覧取得
+     * wp_tenrec_daily.entries（JSON）から driver フィールドを収集
      * ------------------------------------------------------------- */
     private function get_drivers() {
         global $wpdb;
 
         $table = $wpdb->prefix . 'tenrec_daily';
-
-        // entries カラムを全件取得（空・NULLは除外）
-        $rows = $wpdb->get_col(
+        $rows  = $wpdb->get_col(
             "SELECT entries FROM `{$table}`
              WHERE entries IS NOT NULL AND entries <> '' AND entries <> '[]'"
         );
 
-        if ( $wpdb->last_error ) {
-            return [ 'error' => $wpdb->last_error, 'drivers' => [] ];
-        }
+        $db_error = $wpdb->last_error;
+        if ( ! is_array( $rows ) ) $rows = [];
 
-        // JSON をパースして driver フィールドを収集
         $drivers = [];
         foreach ( $rows as $json ) {
             $entries = json_decode( $json, true );
             if ( ! is_array( $entries ) ) continue;
             foreach ( $entries as $entry ) {
                 $driver = trim( $entry['driver'] ?? '' );
-                if ( $driver !== '' ) {
-                    $drivers[ $driver ] = true;
-                }
+                if ( $driver !== '' ) $drivers[ $driver ] = true;
             }
         }
 
         $drivers = array_keys( $drivers );
         sort( $drivers, SORT_STRING | SORT_FLAG_CASE );
 
-        return [ 'error' => '', 'drivers' => $drivers ];
+        return [ 'drivers' => $drivers, 'error' => $db_error ];
     }
 
+    /* ---------------------------------------------------------------
+     * driver 名 → wp_emp_master から employee_code / crew_code 取得
+     * ------------------------------------------------------------- */
+    private function get_emp_info( $driver_name ) {
+        global $wpdb;
+
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "SELECT employee_code, crew_code
+             FROM {$wpdb->prefix}emp_master
+             WHERE name = %s
+             LIMIT 1",
+            $driver_name
+        ), ARRAY_A );
+
+        return $row ?: [ 'employee_code' => '―', 'crew_code' => '―' ];
+    }
+
+    /* ---------------------------------------------------------------
+     * 管理画面レンダリング
+     * ------------------------------------------------------------- */
     public function render_page() {
         global $wpdb;
 
-        $result        = $this->get_drivers();
-        $drivers       = $result['drivers'];
-        $db_error      = $result['error'];
-        $default_month = date( 'Y-m', strtotime( 'first day of last month' ) );
+        // ドライバー名一覧
+        $result   = $this->get_drivers();
+        $drivers  = $result['drivers'];
+        $db_error = $result['error'];
+
+        // フォーム送信値
+        $selected_driver = isset( $_GET['dr_driver'] ) ? sanitize_text_field( wp_unslash( $_GET['dr_driver'] ) ) : '';
+        $selected_month  = isset( $_GET['dr_month']  ) ? sanitize_text_field( wp_unslash( $_GET['dr_month']  ) ) : date( 'Y-m', strtotime( 'first day of last month' ) );
+
+        // 集計結果
+        $emp_info = null;
+        if ( $selected_driver !== '' && $selected_month !== '' ) {
+            $emp_info = $this->get_emp_info( $selected_driver );
+        }
 
         include DR_PLUGIN_DIR . 'templates/main-page.php';
     }
