@@ -6,12 +6,12 @@
 
     // ドライバー名が選択されたらボタンを活性化
     function updateBtnState() {
-        var driver = $('#dr-select-driver').val();
-        var month  = $('#dr-select-month').val();
-        $('#dr-btn-open').prop('disabled', !driver || !month);
+        var crew  = $('#dr-select-crew').val();
+        var month = $('#dr-select-month').val();
+        $('#dr-btn-open').prop('disabled', !crew || !month);
     }
 
-    $('#dr-select-driver').on('change', updateBtnState);
+    $('#dr-select-crew').on('change', updateBtnState);
     $('#dr-select-month').on('change input', updateBtnState);
 
     // 初期評価
