@@ -3,7 +3,7 @@
    ============================================================= */
 
 .dr-wrap {
-    max-width: 1100px;
+    max-width: 1300px;
     margin: 20px auto 40px;
     font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "メイリオ", sans-serif;
 }
@@ -26,16 +26,8 @@
     align-items: center;
     gap: 10px;
 }
-.dr-page-title .dashicons {
-    font-size: 26px;
-    width: 26px;
-    height: 26px;
-}
-.dr-page-desc {
-    margin: 0;
-    font-size: 13px;
-    color: rgba(255,255,255,.82);
-}
+.dr-page-title .dashicons { font-size: 26px; width: 26px; height: 26px; }
+.dr-page-desc { margin: 0; font-size: 13px; color: rgba(255,255,255,.82); }
 
 /* ---- ノーティス ---- */
 .dr-notice {
@@ -75,15 +67,8 @@
     align-items: center;
     gap: 8px;
 }
-.dr-card-header .dashicons {
-    color: #2e6da4;
-    font-size: 18px;
-    width: 18px;
-    height: 18px;
-}
-.dr-card-body {
-    padding: 22px 24px;
-}
+.dr-card-header .dashicons { color: #2e6da4; font-size: 18px; width: 18px; height: 18px; }
+.dr-card-body { padding: 22px 24px; }
 
 /* ---- フォーム ---- */
 .dr-form-row {
@@ -92,20 +77,10 @@
     align-items: flex-end;
     gap: 20px;
 }
-.dr-form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-.dr-form-group--btn {
-    padding-bottom: 1px;
-}
-.dr-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: #444;
-    letter-spacing: .03em;
-}
+.dr-form-group { display: flex; flex-direction: column; gap: 6px; }
+.dr-form-group--btn { padding-bottom: 1px; }
+.dr-label { font-size: 12px; font-weight: 700; color: #444; letter-spacing: .03em; }
+
 .dr-select {
     height: 38px;
     min-width: 200px;
@@ -131,7 +106,6 @@
     font-size: 14px;
     color: #333;
     background: #fff;
-    transition: border-color .2s;
 }
 .dr-input-month:focus {
     outline: none;
@@ -154,93 +128,113 @@
     transition: background .2s, opacity .2s;
     letter-spacing: .03em;
 }
-.dr-btn-primary {
-    background: #2e6da4;
-    color: #fff;
+.dr-btn-primary { background: #2e6da4; color: #fff; }
+.dr-btn-primary:hover:not(:disabled) { background: #1e5080; color: #fff; }
+.dr-btn-primary:disabled { background: #aac2da; cursor: not-allowed; opacity: .75; }
+.dr-btn .dashicons { font-size: 16px; width: 16px; height: 16px; }
+
+/* ---- 社員情報テーブル ---- */
+.dr-info-table {
+    width: auto;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 24px;
 }
-.dr-btn-primary:hover:not(:disabled) {
-    background: #1e5080;
-    color: #fff;
+.dr-info-table thead tr { background: #1e3a5f; color: #fff; }
+.dr-info-table th {
+    padding: 8px 18px;
+    text-align: left;
+    font-weight: 700;
+    border: 1px solid #15304f;
+    white-space: nowrap;
 }
-.dr-btn-primary:disabled {
-    background: #aac2da;
-    cursor: not-allowed;
-    opacity: .75;
-}
-.dr-btn .dashicons {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
+.dr-info-table tbody tr { background: #f9fbfd; }
+.dr-info-table td {
+    padding: 8px 18px;
+    border: 1px solid #dde3ea;
+    color: #222;
 }
 
-/* ---- 結果エリア ---- */
-.dr-result-area {
-    animation: drFadeIn .3s ease;
-}
-@keyframes drFadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-.dr-placeholder {
-    color: #888;
-    font-size: 14px;
-    margin: 0;
-    padding: 10px 0;
+/* ---- メインテーブルラッパー ---- */
+.dr-table-wrap {
+    overflow-x: auto;
+    border-radius: 6px;
+    border: 1px solid #dde3ea;
 }
 
-/* ---- レスポンシブ ---- */
+/* ---- 勤怠メインテーブル ---- */
+.dr-main-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    white-space: nowrap;
+    min-width: 900px;
+}
+
+.dr-main-table thead tr {
+    background: #1e3a5f;
+    color: #fff;
+}
+.dr-main-table th {
+    padding: 9px 10px;
+    text-align: center;
+    font-weight: 700;
+    border: 1px solid #15304f;
+    font-size: 12px;
+    letter-spacing: .02em;
+}
+
+.dr-main-table tbody tr { background: #fff; }
+.dr-main-table tbody tr:nth-child(even) { background: #f7fafd; }
+.dr-main-table tbody tr:hover { background: #eef4fb; }
+
+.dr-main-table td {
+    padding: 6px 10px;
+    border: 1px solid #e0e6ee;
+    text-align: center;
+    color: #333;
+    vertical-align: middle;
+}
+
+/* 曜日・日付 */
+.col-date { text-align: left; min-width: 80px; font-weight: 600; }
+.dr-dow {
+    display: inline-block;
+    width: 18px;
+    margin-left: 4px;
+    font-size: 11px;
+    color: #666;
+}
+
+/* 列幅 */
+.col-kintai { min-width: 110px; }
+.col-time   { min-width: 70px; }
+.col-min    { min-width: 68px; }
+
+/* 行カラーリング */
+.dr-row-sun td { background: #fff5f5 !important; }
+.dr-row-sun td .dr-dow { color: #d63638; font-weight: 700; }
+.dr-row-sat td { background: #f0f5ff !important; }
+.dr-row-sat td .dr-dow { color: #2e6da4; font-weight: 700; }
+.dr-row-off td { color: #aaa; }
+
+/* 残業セル */
+.dr-cell-over { color: #c0392b; font-weight: 700; }
+
+/* 勤怠種別セレクト */
+.dr-kintai-select {
+    width: 100%;
+    font-size: 12px;
+    padding: 3px 4px;
+    border: 1px solid #c3cdd8;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+}
+
+/* レスポンシブ */
 @media (max-width: 768px) {
     .dr-form-row { flex-direction: column; gap: 14px; }
     .dr-select, .dr-input-month { width: 100%; min-width: unset; }
     .dr-btn { width: 100%; justify-content: center; }
-}
-
-/* ---- 社員情報テーブル ---- */
-.dr-info-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-    margin-bottom: 24px;
-}
-
-.dr-info-table thead tr {
-    background: #1e3a5f;
-    color: #fff;
-}
-
-.dr-info-table th {
-    padding: 10px 16px;
-    text-align: left;
-    font-weight: 700;
-    font-size: 13px;
-    letter-spacing: .04em;
-    border: 1px solid #15304f;
-}
-
-.dr-info-table tbody tr {
-    background: #f9fbfd;
-}
-
-.dr-info-table tbody tr:hover {
-    background: #eef4fb;
-}
-
-.dr-info-table td {
-    padding: 12px 16px;
-    border: 1px solid #dde3ea;
-    color: #222;
-    font-size: 14px;
-}
-
-/* ---- ノーティス ---- */
-.dr-notice {
-    padding: 10px 16px;
-    border-radius: 5px;
-    font-size: 13px;
-    margin-bottom: 16px;
-}
-.dr-notice-error {
-    background: #fff0f0;
-    border-left: 4px solid #d63638;
-    color: #7a1a1a;
 }
