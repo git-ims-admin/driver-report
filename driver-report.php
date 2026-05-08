@@ -2,13 +2,13 @@
 /**
  * Plugin Name: 勤怠管理 | 長距離ドライバー
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
- * Version:     1.0.6
+ * Version:     1.0.7
  * Author:      有限会社たんぽぽ運送
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.0.6' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.0.7' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -69,7 +69,7 @@ class Tanpopo_DriverReport {
                 FROM `{$kousoku}`
                 WHERE crew_code IS NOT NULL AND crew_code <> ''
             ) k
-            LEFT JOIN `{$emp}` m ON m.crew_code = k.crew_code
+            LEFT JOIN `{$emp}` m ON m.crew_code COLLATE utf8mb4_unicode_520_ci = k.crew_code COLLATE utf8mb4_unicode_520_ci
             ORDER BY k.crew_code ASC
         ", ARRAY_A );
 
@@ -95,7 +95,7 @@ class Tanpopo_DriverReport {
                 employee_code,
                 crew_code
             FROM {$wpdb->prefix}emp_master
-            WHERE crew_code = %s
+            WHERE crew_code COLLATE utf8mb4_unicode_520_ci = %s
             LIMIT 1
         ", $crew_code ), ARRAY_A );
 
