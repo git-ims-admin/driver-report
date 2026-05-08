@@ -2,13 +2,13 @@
 /**
  * Plugin Name: 勤怠管理 | 長距離ドライバー
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
- * Version:     1.0.5
+ * Version:     1.0.6
  * Author:      有限会社たんぽぽ運送
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.0.5' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.0.6' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -45,73 +45,90 @@ class Tanpopo_DriverReport {
     }
 
     /* ---------------------------------------------------------------
-     * ドライバー名一覧取得
-     * wp_tenrec_daily.entries（JSON）から driver フィールドを収集
+     * wp_kousoku_log に存在する crew_code を取得し、
+     * wp_emp_master と JOIN して社員情報を返す
+     *
+     * @return array [
+     *   'employees' => [ [ 'crew_code', 'name', 'employee_code' ], ... ],
+     *   'error'     => string
+     * ]
      * ------------------------------------------------------------- */
-    private function get_drivers() {
+    private function get_employees_from_kousoku() {
         global $wpdb;
 
-        $table = $wpdb->prefix . 'tenrec_daily';
-        $rows  = $wpdb->get_col(
-            "SELECT entries FROM `{$table}`
-             WHERE entries IS NOT NULL AND entries <> '' AND entries <> '[]'"
-        );
+        $kousoku = $wpdb->prefix . 'kousoku_log';
+        $emp     = $wpdb->prefix . 'emp_master';
+
+        $rows = $wpdb->get_results( "
+            SELECT
+                k.crew_code,
+                COALESCE( m.name,          '（未登録）' ) AS name,
+                COALESCE( m.employee_code, '―'          ) AS employee_code
+            FROM (
+                SELECT DISTINCT crew_code
+                FROM `{$kousoku}`
+                WHERE crew_code IS NOT NULL AND crew_code <> ''
+            ) k
+            LEFT JOIN `{$emp}` m ON m.crew_code = k.crew_code
+            ORDER BY k.crew_code ASC
+        ", ARRAY_A );
 
         $db_error = $wpdb->last_error;
+
         if ( ! is_array( $rows ) ) $rows = [];
 
-        $drivers = [];
-        foreach ( $rows as $json ) {
-            $entries = json_decode( $json, true );
-            if ( ! is_array( $entries ) ) continue;
-            foreach ( $entries as $entry ) {
-                $driver = trim( $entry['driver'] ?? '' );
-                if ( $driver !== '' ) $drivers[ $driver ] = true;
-            }
-        }
-
-        $drivers = array_keys( $drivers );
-        sort( $drivers, SORT_STRING | SORT_FLAG_CASE );
-
-        return [ 'drivers' => $drivers, 'error' => $db_error ];
+        return [
+            'employees' => $rows,
+            'error'     => $db_error,
+        ];
     }
 
     /* ---------------------------------------------------------------
-     * driver 名 → wp_emp_master から employee_code / crew_code 取得
+     * 選択した crew_code の社員情報を取得
      * ------------------------------------------------------------- */
-    private function get_emp_info( $driver_name ) {
+    private function get_emp_info_by_crew( $crew_code ) {
         global $wpdb;
 
-        $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT employee_code, crew_code
-             FROM {$wpdb->prefix}emp_master
-             WHERE name = %s
-             LIMIT 1",
-            $driver_name
-        ), ARRAY_A );
+        $row = $wpdb->get_row( $wpdb->prepare( "
+            SELECT
+                name,
+                employee_code,
+                crew_code
+            FROM {$wpdb->prefix}emp_master
+            WHERE crew_code = %s
+            LIMIT 1
+        ", $crew_code ), ARRAY_A );
 
-        return $row ?: [ 'employee_code' => '―', 'crew_code' => '―' ];
+        // emp_master に未登録の場合でも crew_code だけ返す
+        if ( ! $row ) {
+            return [
+                'name'          => '（未登録）',
+                'employee_code' => '―',
+                'crew_code'     => $crew_code,
+            ];
+        }
+
+        return $row;
     }
 
     /* ---------------------------------------------------------------
      * 管理画面レンダリング
      * ------------------------------------------------------------- */
     public function render_page() {
-        global $wpdb;
 
-        // ドライバー名一覧
-        $result   = $this->get_drivers();
-        $drivers  = $result['drivers'];
-        $db_error = $result['error'];
+        // 社員一覧取得
+        $result    = $this->get_employees_from_kousoku();
+        $employees = $result['employees'];
+        $db_error  = $result['error'];
 
         // フォーム送信値
-        $selected_driver = isset( $_GET['dr_driver'] ) ? sanitize_text_field( wp_unslash( $_GET['dr_driver'] ) ) : '';
-        $selected_month  = isset( $_GET['dr_month']  ) ? sanitize_text_field( wp_unslash( $_GET['dr_month']  ) ) : date( 'Y-m', strtotime( 'first day of last month' ) );
+        $selected_crew  = isset( $_GET['dr_crew']  ) ? sanitize_text_field( wp_unslash( $_GET['dr_crew']  ) ) : '';
+        $selected_month = isset( $_GET['dr_month'] ) ? sanitize_text_field( wp_unslash( $_GET['dr_month'] ) ) : date( 'Y-m', strtotime( 'first day of last month' ) );
 
         // 集計結果
         $emp_info = null;
-        if ( $selected_driver !== '' && $selected_month !== '' ) {
-            $emp_info = $this->get_emp_info( $selected_driver );
+        if ( $selected_crew !== '' && $selected_month !== '' ) {
+            $emp_info = $this->get_emp_info_by_crew( $selected_crew );
         }
 
         include DR_PLUGIN_DIR . 'templates/main-page.php';
