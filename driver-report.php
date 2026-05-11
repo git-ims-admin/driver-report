@@ -2,13 +2,13 @@
 /**
  * Plugin Name: 勤怠管理 | 長距離ドライバー
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
- * Version:     1.1.0
+ * Version:     1.1.1
  * Author:      有限会社たんぽぽ運送
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.0' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.1' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -313,11 +313,12 @@ class Tanpopo_DriverReport {
     private function get_weekly_summary( $crew_code, $year_month, $monthly_rows ) {
         global $wpdb;
 
-        $start_date  = new DateTime( $year_month . '-01' );
-        $end_date    = new DateTime( date( 'Y-m-t', strtotime( $year_month . '-01' ) ) );
+        // --- 文字列で月初・月末を管理（DateTime比較の不具合を回避） ---
+        $month_start_str = $year_month . '-01';
+        $month_end_str   = date( 'Y-m-t', strtotime( $month_start_str ) );
 
         // --- 前月繰越データ取得 ---
-        $carryover = $this->get_carryover( $crew_code, $year_month );
+        $carryover      = $this->get_carryover( $crew_code, $year_month );
         $carry_labor    = $carryover ? (int)$carryover['labor_min']    : 0;
         $carry_drive    = $carryover ? (int)$carryover['drive_min']    : 0;
         $carry_cargo    = $carryover ? (int)$carryover['cargo_min']    : 0;
@@ -331,23 +332,22 @@ class Tanpopo_DriverReport {
             $rows_by_date[ $r['date'] ] = $r;
         }
 
-        // --- 月の最初の日曜を求める ---
-        // 月初の曜日 (0=Sun, 1=Mon ... 6=Sat)
-        $first_dow = (int)$start_date->format('w'); // 0=Sun
-        // 月初が日曜なら当日、それ以外は前の日曜へ
-        $week_start = clone $start_date;
-        if ( $first_dow !== 0 ) {
-            $week_start->modify( '-' . $first_dow . ' days' );
-        }
+        // --- 月初の曜日から第1週の日曜を求める (0=Sun … 6=Sat) ---
+        $first_dow        = (int) date( 'w', strtotime( $month_start_str ) );
+        $week_start_str   = date( 'Y-m-d', strtotime( $month_start_str . ' -' . $first_dow . ' days' ) );
 
         $weeks      = [];
         $week_index = 1;
 
-        while ( $week_start <= $end_date ) {
-            $week_end = clone $week_start;
-            $week_end->modify( '+6 days' ); // 土曜
+        // 週の開始日が月末以前である限りループ
+        while ( $week_start_str <= $month_end_str ) {
 
-            // 週内のうち「対象月に含まれる」日を集計
+            $week_end_str = date( 'Y-m-d', strtotime( $week_start_str . ' +6 days' ) );
+
+            // 週内の集計ループに使う終端：週末 or 月末の早い方（文字列比較）
+            $loop_end_str = ( $week_end_str <= $month_end_str ) ? $week_end_str : $month_end_str;
+
+            // 集計バッファ
             $sum = [
                 'labor_min'    => 0,
                 'drive_min'    => 0,
@@ -369,52 +369,44 @@ class Tanpopo_DriverReport {
                 $sum['days']         += $carry_days;
             }
 
-            $cursor = clone $week_start;
-            $week_end_actual = min( $week_end, $end_date ); // 月末を超えない
-
-            while ( $cursor <= $week_end_actual ) {
-                $d = $cursor->format('Y-m-d');
-                // 対象月内のみ集計
-                if ( $cursor >= $start_date && $cursor <= $end_date ) {
-                    $r = $rows_by_date[ $d ] ?? null;
+            // 週内を1日ずつ走査（文字列比較で確実に月内のみ集計）
+            $cursor_str = $week_start_str;
+            while ( $cursor_str <= $loop_end_str ) {
+                // 対象月内のみカウント
+                if ( $cursor_str >= $month_start_str && $cursor_str <= $month_end_str ) {
+                    $r = $rows_by_date[ $cursor_str ] ?? null;
                     if ( $r && $r['has_data'] ) {
-                        $sum['labor_min']    += (int)($r['labor_min']    ?? 0);
-                        $sum['drive_min']    += (int)($r['drive_min']    ?? 0);
-                        $sum['cargo_min']    += (int)($r['cargo_min']    ?? 0);
-                        $sum['kousoku_min']  += (int)($r['kousoku_min']  ?? 0);
-                        $sum['midnight_min'] += (int)($r['midnight_min'] ?? 0);
-                        $sum['overtime_min'] += (int)($r['overtime_min'] ?? 0);
+                        $sum['labor_min']    += (int)( $r['labor_min']    ?? 0 );
+                        $sum['drive_min']    += (int)( $r['drive_min']    ?? 0 );
+                        $sum['cargo_min']    += (int)( $r['cargo_min']    ?? 0 );
+                        $sum['kousoku_min']  += (int)( $r['kousoku_min']  ?? 0 );
+                        $sum['midnight_min'] += (int)( $r['midnight_min'] ?? 0 );
+                        $sum['overtime_min'] += (int)( $r['overtime_min'] ?? 0 );
                     }
                     $sum['days']++;
                 }
-                $cursor->modify('+1 day');
+                $cursor_str = date( 'Y-m-d', strtotime( $cursor_str . ' +1 day' ) );
             }
 
-            // 週が土曜で完結しているか
-            $week_ends_on_sat = ( $week_end->format('N') == 6 );
-            $week_complete    = ( $week_end <= $end_date ); // 週末が月末以前
+            // 週が月末以前に完結しているか（=土曜が月内）
+            $week_complete = ( $week_end_str <= $month_end_str );
+            $is_carryover  = ! $week_complete;
 
             // 週残業 = 週労働 > 2400分 なら超過分
-            $week_labor_total = $sum['labor_min'];
-            $week_overtime    = $week_labor_total > 2400 ? $week_labor_total - 2400 : 0;
-
-            // 確定残業 = max(日残業合計, 週残業)
+            $week_overtime      = $sum['labor_min'] > 2400 ? $sum['labor_min'] - 2400 : 0;
             $confirmed_overtime = max( $sum['overtime_min'], $week_overtime );
-
-            // 週が月末をまたぐ（残業繰越）
-            $is_carryover = ! $week_complete;
 
             $label = $is_carryover ? '（残業繰越）' : ( '第' . $week_index . '週計' );
 
-            // 表示上の開始日（対象月内に限定）
-            $disp_start = $week_start < $start_date ? clone $start_date : clone $week_start;
-            $disp_end   = $week_end   > $end_date   ? clone $end_date   : clone $week_end;
+            // 表示上の開始・終了日（対象月内に限定）
+            $disp_start = max( $week_start_str, $month_start_str );
+            $disp_end   = min( $week_end_str,   $month_end_str   );
 
             $weeks[] = [
                 'label'              => $label,
                 'is_carryover'       => $is_carryover,
-                'disp_start'         => $disp_start->format('Y/m/d'),
-                'disp_end'           => $disp_end->format('Y/m/d'),
+                'disp_start'         => date( 'Y/m/d', strtotime( $disp_start ) ),
+                'disp_end'           => date( 'Y/m/d', strtotime( $disp_end   ) ),
                 'days'               => $sum['days'],
                 'kousoku_min'        => $sum['kousoku_min'],
                 'labor_min'          => $sum['labor_min'],
@@ -428,21 +420,21 @@ class Tanpopo_DriverReport {
                 'carry_days'         => $is_first_week ? $carry_days : 0,
             ];
 
-            // 繰越データを保存（翌月分として）
+            // 翌月繰越データを保存
             if ( $is_carryover ) {
-                $next_month = date( 'Y-m', strtotime( $year_month . '-01 +1 month' ) );
+                $next_month = date( 'Y-m', strtotime( $month_start_str . ' +1 month' ) );
                 $this->save_carryover( $crew_code, $next_month, [
-                    'labor_min'    => $sum['labor_min'],
-                    'drive_min'    => $sum['drive_min'],
-                    'cargo_min'    => $sum['cargo_min'],
-                    'kousoku_min'  => $sum['kousoku_min'],
-                    'midnight_min' => $sum['midnight_min'],
-                    'days'         => $sum['days'] - ( $is_first_week ? $carry_days : 0 ),
+                    'labor_min'    => $sum['labor_min']    - ( $is_first_week ? $carry_labor    : 0 ),
+                    'drive_min'    => $sum['drive_min']    - ( $is_first_week ? $carry_drive    : 0 ),
+                    'cargo_min'    => $sum['cargo_min']    - ( $is_first_week ? $carry_cargo    : 0 ),
+                    'kousoku_min'  => $sum['kousoku_min']  - ( $is_first_week ? $carry_kousoku  : 0 ),
+                    'midnight_min' => $sum['midnight_min'] - ( $is_first_week ? $carry_midnight : 0 ),
+                    'days'         => $sum['days']         - ( $is_first_week ? $carry_days     : 0 ),
                 ] );
             }
 
             if ( ! $is_carryover ) $week_index++;
-            $week_start->modify('+7 days');
+            $week_start_str = date( 'Y-m-d', strtotime( $week_start_str . ' +7 days' ) );
         }
 
         // --- 月間合計 ---
