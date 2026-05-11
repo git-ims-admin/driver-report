@@ -2,13 +2,13 @@
 /**
  * Plugin Name: 勤怠管理 | 長距離ドライバー
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
- * Version:     1.0.9
+ * Version:     1.1.0
  * Author:      有限会社たんぽぽ運送
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.0.9' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.0' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -144,17 +144,23 @@ class Tanpopo_DriverReport {
         global $wpdb;
         return $wpdb->get_row( $wpdb->prepare( "
             SELECT * FROM `{$wpdb->prefix}dr_carryover`
-            WHERE crew_code = %s AND year_month = %s
+            WHERE `crew_code` = %s AND `year_month` = %s
         ", $crew_code, $year_month ), ARRAY_A );
     }
 
     /** 繰越データ保存（UPSERT） */
     private function save_carryover( $crew_code, $year_month, $data ) {
         global $wpdb;
-        $table = $wpdb->prefix . 'dr_carryover';
+        $table    = $wpdb->prefix . 'dr_carryover';
         $existing = $this->get_carryover( $crew_code, $year_month );
         if ( $existing ) {
-            $wpdb->update( $table, $data, [ 'crew_code' => $crew_code, 'year_month' => $year_month ] );
+            $wpdb->update(
+                $table,
+                $data,
+                [ 'crew_code' => $crew_code, 'year_month' => $year_month ],
+                null,
+                [ '%s', '%s' ]
+            );
         } else {
             $wpdb->insert( $table, array_merge( $data, [
                 'crew_code'  => $crew_code,
