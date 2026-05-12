@@ -2,13 +2,13 @@
 /**
  * Plugin Name: 勤怠管理 | 長距離ドライバー
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
- * Version:     1.1.2
+ * Version:     1.1.3
  * Author:      有限会社たんぽぽ運送
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.2' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.3' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -467,15 +467,15 @@ class Tanpopo_DriverReport {
         }
 
         // --- 月間合計（前月繰越行・残業繰越行を除いた当月分のみ） ---
-        $month_weeks = array_filter( $weeks, fn($w) => ! $w['is_prev_carry'] );
+        $month_weeks = array_filter( $weeks, function($w) { return ! $w['is_prev_carry']; } );
         $total = [
             'kousoku_min'        => array_sum( array_column( $month_weeks, 'kousoku_min' ) ),
             'labor_min'          => array_sum( array_column( $month_weeks, 'labor_min' ) ),
             'drive_min'          => array_sum( array_column( $month_weeks, 'drive_min' ) ),
             'cargo_min'          => array_sum( array_column( $month_weeks, 'cargo_min' ) ),
             'day_overtime_min'   => array_sum( array_column( $month_weeks, 'day_overtime_min' ) ),
-            'week_overtime_min'  => array_sum( array_filter( array_column( $month_weeks, 'week_overtime_min' ), fn($v) => $v !== null ) ),
-            'confirmed_overtime' => array_sum( array_filter( array_column( $month_weeks, 'confirmed_overtime' ), fn($v) => $v !== null ) ),
+            'week_overtime_min'  => array_sum( array_filter( array_column( $month_weeks, 'week_overtime_min' ), function($v) { return $v !== null; } ) ),
+            'confirmed_overtime' => array_sum( array_filter( array_column( $month_weeks, 'confirmed_overtime' ), function($v) { return $v !== null; } ) ),
             'midnight_min'       => array_sum( array_column( $month_weeks, 'midnight_min' ) ),
             'days'               => array_sum( array_column( $month_weeks, 'days' ) ),
         ];
@@ -581,8 +581,8 @@ class Tanpopo_DriverReport {
             'drive_min'          => array_sum( array_column( $weeks, 'drive_min' ) ),
             'cargo_min'          => array_sum( array_column( $weeks, 'cargo_min' ) ),
             'day_overtime_min'   => array_sum( array_column( $weeks, 'day_overtime_min' ) ),
-            'week_overtime_min'  => array_sum( array_filter( array_column( $weeks, 'week_overtime_min' ), fn($v) => $v !== null ) ),
-            'confirmed_overtime' => array_sum( array_filter( array_column( $weeks, 'confirmed_overtime' ), fn($v) => $v !== null ) ),
+            'week_overtime_min'  => array_sum( array_filter( array_column( $weeks, 'week_overtime_min' ), function($v) { return $v !== null; } ) ),
+            'confirmed_overtime' => array_sum( array_filter( array_column( $weeks, 'confirmed_overtime' ), function($v) { return $v !== null; } ) ),
             'midnight_min'       => array_sum( array_column( $weeks, 'midnight_min' ) ),
             'days'               => array_sum( array_column( $weeks, 'days' ) ),
         ];
