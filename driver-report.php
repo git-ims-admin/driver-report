@@ -119,7 +119,7 @@ class Tanpopo_DriverReport {
             ) k
             LEFT JOIN `{$wpdb->prefix}emp_master` m
                 ON m.crew_code COLLATE utf8mb4_unicode_520_ci = k.crew_code COLLATE utf8mb4_unicode_520_ci
-            ORDER BY k.crew_code ASC
+            ORDER BY CAST( COALESCE( NULLIF( m.employee_code, '―' ), '99999' ) AS UNSIGNED ) ASC
         ", ARRAY_A );
         return [
             'employees' => is_array( $rows ) ? $rows : [],

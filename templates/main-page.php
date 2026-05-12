@@ -36,7 +36,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                                 <option value="<?php echo esc_attr( $emp['crew_code'] ); ?>"
                                     <?php selected( $selected_crew, $emp['crew_code'] ); ?>>
                                     <?php echo esc_html( $emp['name'] ); ?>
-                                    <?php if ( $emp['employee_code'] !== '―' ) : ?>（<?php echo esc_html( $emp['employee_code'] ); ?>）<?php endif; ?>
+                                    <?php if ( $emp['employee_code'] !== '―' ) : ?>[<?php echo esc_html( $emp['employee_code'] ); ?>]<?php endif; ?><?php echo esc_html( $emp['name'] ); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -167,9 +167,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                     </thead>
                     <tbody>
                     <?php foreach ( $weekly['weeks'] as $w ) :
-                        $w_class = '';
-                        if ( $w['is_prev_carry'] )  $w_class = 'dr-week-prev-carry';
-                        elseif ( $w['is_carryover'] ) $w_class = 'dr-week-carryover';
+                        $w_class = $w['is_carryover'] ? 'dr-week-carryover' : '';
                     ?>
                         <tr class="<?php echo $w_class; ?>">
                             <td class="wcol-label"><?php echo esc_html( $w['label'] ); ?></td>
