@@ -167,7 +167,9 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                     </thead>
                     <tbody>
                     <?php foreach ( $weekly['weeks'] as $w ) :
-                        $w_class = $w['is_carryover'] ? 'dr-week-carryover' : '';
+                        $w_class = '';
+                        if ( $w['is_prev_carry'] )  $w_class = 'dr-week-prev-carry';
+                        elseif ( $w['is_carryover'] ) $w_class = 'dr-week-carryover';
                     ?>
                         <tr class="<?php echo $w_class; ?>">
                             <td class="wcol-label"><?php echo esc_html( $w['label'] ); ?></td>
