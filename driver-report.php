@@ -2,13 +2,13 @@
 /**
  * Plugin Name: 勤怠管理 | 長距離ドライバー
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
- * Version:     1.1.3
+ * Version:     1.1.1
  * Author:      有限会社たんぽぽ運送
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.3' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.1' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -313,7 +313,7 @@ class Tanpopo_DriverReport {
     private function get_weekly_summary( $crew_code, $year_month, $monthly_rows ) {
         global $wpdb;
 
-        // --- 文字列で月初・月末を管理 ---
+        // --- 文字列で月初・月末を管理（DateTime比較の不具合を回避） ---
         $month_start_str = $year_month . '-01';
         $month_end_str   = date( 'Y-m-t', strtotime( $month_start_str ) );
 
@@ -333,153 +333,16 @@ class Tanpopo_DriverReport {
         }
 
         // --- 月初の曜日から第1週の日曜を求める (0=Sun … 6=Sat) ---
-        $first_dow      = (int) date( 'w', strtotime( $month_start_str ) );
-        $week_start_str = date( 'Y-m-d', strtotime( $month_start_str . ' -' . $first_dow . ' days' ) );
+        $first_dow        = (int) date( 'w', strtotime( $month_start_str ) );
+        $week_start_str   = date( 'Y-m-d', strtotime( $month_start_str . ' -' . $first_dow . ' days' ) );
 
         $weeks      = [];
         $week_index = 1;
 
-        // -------------------------------------------------------
-        // 前月繰越行：carry_days > 0 のときのみ先頭に追加
-        // 表示期間 = 前月末日から carry_days 日遡った日〜前月末日
-        // -------------------------------------------------------
-        if ( $carry_days > 0 ) {
-            $prev_month_end   = date( 'Y-m-t', strtotime( $month_start_str . ' -1 month' ) );
-            $carry_start      = date( 'Y-m-d', strtotime( $prev_month_end . ' -' . ( $carry_days - 1 ) . ' days' ) );
-            $carry_break      = $carry_kousoku - $carry_labor;
-
-            $weeks[] = [
-                'label'              => '（前月繰越）',
-                'is_prev_carry'      => true,
-                'is_carryover'       => false,
-                'disp_start'         => date( 'Y/m/d', strtotime( $carry_start    ) ),
-                'disp_end'           => date( 'Y/m/d', strtotime( $prev_month_end ) ),
-                'days'               => $carry_days,
-                'kousoku_min'        => $carry_kousoku,
-                'labor_min'          => $carry_labor,
-                'drive_min'          => $carry_drive,
-                'cargo_min'          => $carry_cargo,
-                'break_min'          => $carry_break,
-                'day_overtime_min'   => 0,
-                'week_overtime_min'  => 0,
-                'confirmed_overtime' => 0,
-                'midnight_min'       => $carry_midnight,
-                'carry_days'         => 0,
-            ];
-        }
-
-        // -------------------------------------------------------
-        // 週ループ
-        // -------------------------------------------------------
+        // 週の開始日が月末以前である限りループ
         while ( $week_start_str <= $month_end_str ) {
 
             $week_end_str = date( 'Y-m-d', strtotime( $week_start_str . ' +6 days' ) );
-            $loop_end_str = ( $week_end_str <= $month_end_str ) ? $week_end_str : $month_end_str;
-
-            // 集計バッファ（時間は繰越込み・日数は当月分のみ）
-            $sum = [
-                'labor_min'     => 0,
-                'drive_min'     => 0,
-                'cargo_min'     => 0,
-                'kousoku_min'   => 0,
-                'midnight_min'  => 0,
-                'overtime_min'  => 0,
-                'days'          => 0,   // 当月分のみ
-                'days_for_week' => 0,   // 週残業計算用（繰越込み）
-            ];
-
-            // 第1週：時間計算に繰越分を加算（日数には加算しない）
-            $is_first_week = ( $week_index === 1 );
-            if ( $is_first_week && $carry_days > 0 ) {
-                $sum['labor_min']     += $carry_labor;
-                $sum['drive_min']     += $carry_drive;
-                $sum['cargo_min']     += $carry_cargo;
-                $sum['kousoku_min']   += $carry_kousoku;
-                $sum['midnight_min']  += $carry_midnight;
-                $sum['days_for_week'] += $carry_days;
-            }
-
-            // 週内を1日ずつ走査
-            $cursor_str = $week_start_str;
-            while ( $cursor_str <= $loop_end_str ) {
-                if ( $cursor_str >= $month_start_str && $cursor_str <= $month_end_str ) {
-                    $r = $rows_by_date[ $cursor_str ] ?? null;
-                    if ( $r && $r['has_data'] ) {
-                        $sum['labor_min']    += (int)( $r['labor_min']    ?? 0 );
-                        $sum['drive_min']    += (int)( $r['drive_min']    ?? 0 );
-                        $sum['cargo_min']    += (int)( $r['cargo_min']    ?? 0 );
-                        $sum['kousoku_min']  += (int)( $r['kousoku_min']  ?? 0 );
-                        $sum['midnight_min'] += (int)( $r['midnight_min'] ?? 0 );
-                        $sum['overtime_min'] += (int)( $r['overtime_min'] ?? 0 );
-                    }
-                    $sum['days']++;           // 当月分のみカウント
-                    $sum['days_for_week']++;  // 週計算用にもカウント
-                }
-                $cursor_str = date( 'Y-m-d', strtotime( $cursor_str . ' +1 day' ) );
-            }
-
-            // 週が月末以前に完結しているか
-            $week_complete = ( $week_end_str <= $month_end_str );
-            $is_carryover  = ! $week_complete;
-
-            // 週残業 = 週労働（繰越込み）> 2400分 なら超過分
-            $week_overtime      = $sum['labor_min'] > 2400 ? $sum['labor_min'] - 2400 : 0;
-            $confirmed_overtime = max( $sum['overtime_min'], $week_overtime );
-
-            $label      = $is_carryover ? '（残業繰越）' : ( '第' . $week_index . '週計' );
-            $disp_start = max( $week_start_str, $month_start_str );
-            $disp_end   = min( $week_end_str,   $month_end_str   );
-
-            $weeks[] = [
-                'label'              => $label,
-                'is_prev_carry'      => false,
-                'is_carryover'       => $is_carryover,
-                'disp_start'         => date( 'Y/m/d', strtotime( $disp_start ) ),
-                'disp_end'           => date( 'Y/m/d', strtotime( $disp_end   ) ),
-                'days'               => $sum['days'],          // 当月分のみ
-                'kousoku_min'        => $sum['kousoku_min'],
-                'labor_min'          => $sum['labor_min'],
-                'drive_min'          => $sum['drive_min'],
-                'cargo_min'          => $sum['cargo_min'],
-                'break_min'          => $sum['kousoku_min'] - $sum['labor_min'],
-                'day_overtime_min'   => $sum['overtime_min'],
-                'week_overtime_min'  => $is_carryover ? null : $week_overtime,
-                'confirmed_overtime' => $is_carryover ? null : $confirmed_overtime,
-                'midnight_min'       => $sum['midnight_min'],
-                'carry_days'         => $is_first_week ? $carry_days : 0,
-            ];
-
-            // 翌月繰越データを保存
-            if ( $is_carryover ) {
-                $next_month = date( 'Y-m', strtotime( $month_start_str . ' +1 month' ) );
-                $this->save_carryover( $crew_code, $next_month, [
-                    'labor_min'    => $sum['labor_min']    - ( $is_first_week ? $carry_labor    : 0 ),
-                    'drive_min'    => $sum['drive_min']    - ( $is_first_week ? $carry_drive    : 0 ),
-                    'cargo_min'    => $sum['cargo_min']    - ( $is_first_week ? $carry_cargo    : 0 ),
-                    'kousoku_min'  => $sum['kousoku_min']  - ( $is_first_week ? $carry_kousoku  : 0 ),
-                    'midnight_min' => $sum['midnight_min'] - ( $is_first_week ? $carry_midnight : 0 ),
-                    'days'         => $sum['days'],  // 当月分の端数日数のみ保存
-                ] );
-            }
-
-            if ( ! $is_carryover ) $week_index++;
-            $week_start_str = date( 'Y-m-d', strtotime( $week_start_str . ' +7 days' ) );
-        }
-
-        // --- 月間合計（前月繰越行・残業繰越行を除いた当月分のみ） ---
-        $month_weeks = array_filter( $weeks, function($w) { return ! $w['is_prev_carry']; } );
-        $total = [
-            'kousoku_min'        => array_sum( array_column( $month_weeks, 'kousoku_min' ) ),
-            'labor_min'          => array_sum( array_column( $month_weeks, 'labor_min' ) ),
-            'drive_min'          => array_sum( array_column( $month_weeks, 'drive_min' ) ),
-            'cargo_min'          => array_sum( array_column( $month_weeks, 'cargo_min' ) ),
-            'day_overtime_min'   => array_sum( array_column( $month_weeks, 'day_overtime_min' ) ),
-            'week_overtime_min'  => array_sum( array_filter( array_column( $month_weeks, 'week_overtime_min' ), function($v) { return $v !== null; } ) ),
-            'confirmed_overtime' => array_sum( array_filter( array_column( $month_weeks, 'confirmed_overtime' ), function($v) { return $v !== null; } ) ),
-            'midnight_min'       => array_sum( array_column( $month_weeks, 'midnight_min' ) ),
-            'days'               => array_sum( array_column( $month_weeks, 'days' ) ),
-        ];
-        $total['break_min'] = $total['kousoku_min'] - $total['labor_min'];
 
             // 週内の集計ループに使う終端：週末 or 月末の早い方（文字列比較）
             $loop_end_str = ( $week_end_str <= $month_end_str ) ? $week_end_str : $month_end_str;
@@ -581,8 +444,8 @@ class Tanpopo_DriverReport {
             'drive_min'          => array_sum( array_column( $weeks, 'drive_min' ) ),
             'cargo_min'          => array_sum( array_column( $weeks, 'cargo_min' ) ),
             'day_overtime_min'   => array_sum( array_column( $weeks, 'day_overtime_min' ) ),
-            'week_overtime_min'  => array_sum( array_filter( array_column( $weeks, 'week_overtime_min' ), function($v) { return $v !== null; } ) ),
-            'confirmed_overtime' => array_sum( array_filter( array_column( $weeks, 'confirmed_overtime' ), function($v) { return $v !== null; } ) ),
+            'week_overtime_min'  => array_sum( array_filter( array_column( $weeks, 'week_overtime_min' ), fn($v) => $v !== null ) ),
+            'confirmed_overtime' => array_sum( array_filter( array_column( $weeks, 'confirmed_overtime' ), fn($v) => $v !== null ) ),
             'midnight_min'       => array_sum( array_column( $weeks, 'midnight_min' ) ),
             'days'               => array_sum( array_column( $weeks, 'days' ) ),
         ];

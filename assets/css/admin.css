@@ -329,14 +329,3 @@
     border-radius: 3px;
     letter-spacing: .04em;
 }
-
-/* 前月繰越行 */
-.dr-week-prev-carry td {
-    background: #f0f4ff !important;
-    color: #3a4a7a;
-    font-style: italic;
-}
-.dr-week-prev-carry .wcol-label {
-    color: #2e6da4;
-    font-weight: 700;
-}
