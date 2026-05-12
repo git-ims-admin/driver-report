@@ -35,7 +35,6 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <?php foreach ( $employees as $emp ) : ?>
                                 <option value="<?php echo esc_attr( $emp['crew_code'] ); ?>"
                                     <?php selected( $selected_crew, $emp['crew_code'] ); ?>>
-                                    <?php echo esc_html( $emp['name'] ); ?>
                                     <?php if ( $emp['employee_code'] !== '―' ) : ?>[<?php echo esc_html( $emp['employee_code'] ); ?>]<?php endif; ?><?php echo esc_html( $emp['name'] ); ?>
                                 </option>
                             <?php endforeach; ?>
