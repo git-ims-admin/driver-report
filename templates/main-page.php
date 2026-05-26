@@ -171,7 +171,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             if ( $w['is_carryover'] )   $w_class = 'dr-week-carryover';
                             if ( $w['is_prev_carry'] )  $w_class = 'dr-week-prev-carry';
                         ?>
-                        <t<tr class="<?php echo $w_class; ?>">
+                        <tr class="<?php echo $w_class; ?>">
                             <td class="wcol-label"><?php echo esc_html( $w['label'] ); ?></td>
                             <td class="wcol-date"><?php echo esc_html( $w['disp_start'] ); ?></td>
                             <td class="wcol-date"><?php echo esc_html( $w['disp_end'] ); ?></td>
