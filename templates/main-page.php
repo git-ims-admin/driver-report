@@ -95,8 +95,8 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <th class="col-min">運転時間</th>
                             <th class="col-min">積卸時間</th>
                             <th class="col-min">休憩時間</th>
-                            <th class="col-min">日残業</th>
                             <th class="col-min">深夜時間</th>
+                            <th class="col-min">日残業</th>
                             <th class="col-min">振替時間</th>
                         </tr>
                     </thead>
@@ -129,10 +129,10 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <td class="col-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $row['drive_min'] ) ); ?></td>
                             <td class="col-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $row['cargo_min'] ) ); ?></td>
                             <td class="col-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $row['break_calc_min'] ) ); ?></td>
+                            <td class="col-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $row['midnight_min'] ) ); ?></td>
                             <td class="col-min <?php echo ( (int)$row['overtime_min'] > 0 ) ? 'dr-cell-over' : ''; ?>">
                                 <?php echo esc_html( Tanpopo_DriverReport::format_min( $row['overtime_min'] ) ); ?>
                             </td>
-                            <td class="col-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $row['midnight_min'] ) ); ?></td>
                             <td class="col-min dr-furikae-cell"
                                 data-labor="<?php echo esc_attr( Tanpopo_DriverReport::format_min( $row['labor_min'] ) ); ?>"
                                 data-default-kintai="<?php echo esc_attr( $row['default_kintai'] ); ?>">
