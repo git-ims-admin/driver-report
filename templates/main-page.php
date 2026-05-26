@@ -125,8 +125,10 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                     ?>
                         <tr class="<?php echo $row_class; ?>" data-auto="true">
                             <td class="col-date">
-                                <?php echo esc_html( substr( $row['date'], 5 ) ); ?>
-                                <span class="dr-dow"><?php echo esc_html( $row['dow'] ); ?></span>
+                                <span class="dr-date-row">
+                                    <?php echo esc_html( substr( $row['date'], 5 ) ); ?>
+                                    <span class="dr-dow"><?php echo esc_html( $row['dow'] ); ?></span>
+                                </span>
                                 <?php if ( ! empty( $row['furikae_label'] ) ) : ?>
                                 <span class="dr-furikae-label"><?php echo esc_html( $row['furikae_label'] ); ?></span>
                                 <?php endif; ?>

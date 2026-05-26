@@ -282,10 +282,14 @@
     align-items: flex-start;
 }
 
+.dr-date-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .dr-dow {
     display: inline-block;
-    width: 18px;
-    margin-left: 4px;
     font-size: 11px;
     color: #666;
 }
