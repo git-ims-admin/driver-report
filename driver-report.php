@@ -343,6 +343,8 @@ class Tanpopo_DriverReport {
         // -------------------------------------------------------
         // 前月繰越行：carry_days > 0 のときのみ先頭に追加
         // -------------------------------------------------------
+        $carry_overtime      = $carryover ? (int)$carryover['overtime_min']      : 0;
+        $carry_week_overtime = $carryover ? (int)$carryover['week_overtime_min'] : 0;
         if ( $carry_days > 0 ) {
             $prev_month_end = date( 'Y-m-t', strtotime( $month_start_str . ' -1 month' ) );
             $carry_start    = date( 'Y-m-d', strtotime( $prev_month_end . ' -' . ( $carry_days - 1 ) . ' days' ) );
