@@ -27,6 +27,29 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
         <div class="dr-card-body">
             <form method="GET" action="<?php echo esc_url( $page_url ); ?>">
                 <input type="hidden" name="page" value="driver-report">
+
+                <?php
+                // 所属一覧をemployeesから生成（重複除去・順序維持）
+                $affil_map = [];
+                foreach ( $employees as $emp ) {
+                    $aid = (int) $emp['affiliation_id'];
+                    if ( ! isset( $affil_map[ $aid ] ) ) {
+                        $affil_map[ $aid ] = $emp['affiliation_name'];
+                    }
+                }
+                ?>
+                <!-- 所属フィルターチップ -->
+                <?php if ( count( $affil_map ) > 1 ) : ?>
+                <div class="dr-affil-chips">
+                    <button type="button" class="dr-chip dr-chip-active" data-affil="all">すべて</button>
+                    <?php foreach ( $affil_map as $aid => $aname ) : ?>
+                    <button type="button" class="dr-chip" data-affil="<?php echo esc_attr( $aid ); ?>">
+                        <?php echo esc_html( $aname ); ?>
+                    </button>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+
                 <div class="dr-form-row">
                     <div class="dr-form-group">
                         <label class="dr-label" for="dr-select-crew">社員名</label>
@@ -34,6 +57,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <option value="">― 社員を選択 ―</option>
                             <?php foreach ( $employees as $emp ) : ?>
                                 <option value="<?php echo esc_attr( $emp['crew_code'] ); ?>"
+                                    data-affil="<?php echo esc_attr( $emp['affiliation_id'] ); ?>"
                                     <?php selected( $selected_crew, $emp['crew_code'] ); ?>>
                                     <?php if ( $emp['employee_code'] !== '―' ) : ?>[<?php echo esc_html( $emp['employee_code'] ); ?>]<?php endif; ?><?php echo esc_html( $emp['name'] ); ?>
                                 </option>
@@ -70,13 +94,14 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
             <!-- 社員情報 -->
             <table class="dr-info-table">
                 <thead>
-                    <tr><th>社員名</th><th>社員No.</th><th>乗務員コード</th></tr>
+                    <tr><th>社員名</th><th>社員No.</th><th>乗務員コード</th><th>所属</th></tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td><?php echo esc_html( $emp_info['name'] ); ?></td>
                         <td><?php echo esc_html( $emp_info['employee_code'] ); ?></td>
                         <td><?php echo esc_html( $emp_info['crew_code'] ); ?></td>
+                        <td><?php echo esc_html( $emp_info['affiliation_name'] ); ?></td>
                     </tr>
                 </tbody>
             </table>
@@ -95,7 +120,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                 <?php endforeach; ?>
             </div>
             <?php endif; ?>
- 
+
             <!-- 日別一覧テーブル -->
             <div class="dr-table-wrap">
                 <table class="dr-main-table">
@@ -164,6 +189,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                     </tbody>
                 </table>
             </div><!-- /.dr-table-wrap 日別 -->
+
             <!-- 週次サマリーテーブル -->
             <?php if ( $weekly ) : ?>
             <div class="dr-table-wrap dr-weekly-wrap">
@@ -191,7 +217,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             if ( $w['is_carryover'] )   $w_class = 'dr-week-carryover';
                             if ( $w['is_prev_carry'] )  $w_class = 'dr-week-prev-carry';
                         ?>
-                        <tr class="<?php echo $w_class; ?>">
+                        <t<tr class="<?php echo $w_class; ?>">
                             <td class="wcol-label"><?php echo esc_html( $w['label'] ); ?></td>
                             <td class="wcol-date"><?php echo esc_html( $w['disp_start'] ); ?></td>
                             <td class="wcol-date"><?php echo esc_html( $w['disp_end'] ); ?></td>

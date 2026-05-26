@@ -186,7 +186,9 @@ class Tanpopo_DriverReport {
             SELECT
                 k.crew_code,
                 COALESCE( m.name,          '（未登録）' ) AS name,
-                COALESCE( m.employee_code, '―'          ) AS employee_code
+                COALESCE( m.employee_code, '―'          ) AS employee_code,
+                COALESCE( a.id,            0            ) AS affiliation_id,
+                COALESCE( a.name,          '未所属'     ) AS affiliation_name
             FROM (
                 SELECT DISTINCT crew_code
                 FROM `{$wpdb->prefix}kousoku_log`
@@ -194,6 +196,8 @@ class Tanpopo_DriverReport {
             ) k
             LEFT JOIN `{$wpdb->prefix}emp_master` m
                 ON m.crew_code COLLATE utf8mb4_unicode_520_ci = k.crew_code COLLATE utf8mb4_unicode_520_ci
+            LEFT JOIN `{$wpdb->prefix}mst_affiliation` a
+                ON a.id = m.affiliation_id
             ORDER BY CAST( COALESCE( NULLIF( m.employee_code, '―' ), '99999' ) AS UNSIGNED ) ASC
         ", ARRAY_A );
         return [
@@ -206,12 +210,15 @@ class Tanpopo_DriverReport {
     private function get_emp_info_by_crew( $crew_code ) {
         global $wpdb;
         $row = $wpdb->get_row( $wpdb->prepare( "
-            SELECT name, employee_code, crew_code
-            FROM `{$wpdb->prefix}emp_master`
-            WHERE crew_code COLLATE utf8mb4_unicode_520_ci = %s
+            SELECT m.name, m.employee_code, m.crew_code,
+                   COALESCE( a.name, '未所属' ) AS affiliation_name
+            FROM `{$wpdb->prefix}emp_master` m
+            LEFT JOIN `{$wpdb->prefix}mst_affiliation` a
+                ON a.id = m.affiliation_id
+            WHERE m.crew_code COLLATE utf8mb4_unicode_520_ci = %s
             LIMIT 1
         ", $crew_code ), ARRAY_A );
-        return $row ?: [ 'name' => '（未登録）', 'employee_code' => '―', 'crew_code' => $crew_code ];
+        return $row ?: [ 'name' => '（未登録）', 'employee_code' => '―', 'crew_code' => $crew_code, 'affiliation_name' => '―' ];
     }
 
     /** 繰越データ取得 */

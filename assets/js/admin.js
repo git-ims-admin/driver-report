@@ -19,6 +19,40 @@
     $('#dr-select-month').on('change input', updateBtnState);
     updateBtnState();
 
+    /* ---- 所属チップ → 社員セレクトのフィルタリング ---- */
+    $(document).on('click', '.dr-chip', function () {
+        var $chip = $(this);
+        var affil = $chip.data('affil');
+
+        // アクティブチップ切替
+        $('.dr-chip').removeClass('dr-chip-active');
+        $chip.addClass('dr-chip-active');
+
+        // option の表示切替
+        var $select = $('#dr-select-crew');
+        var $options = $select.find('option[data-affil]');
+
+        if (affil === 'all') {
+            $options.show();
+        } else {
+            $options.each(function () {
+                if ($(this).data('affil') == affil) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+
+        // フィルター後に選択中の値が非表示になったらリセット
+        var $selected = $select.find('option:selected');
+        if ($selected.val() !== '' && $selected.is(':hidden')) {
+            $select.val('');
+        }
+
+        updateBtnState();
+    });
+
     /* ---- 勤怠種別変更 → 振替時間セル表示切替 + data-auto フラグ ---- */
     $(document).on('change', '.dr-kintai-select', function () {
         var $sel = $(this);

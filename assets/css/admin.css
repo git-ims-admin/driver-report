@@ -494,6 +494,9 @@
     border-bottom: 2px dashed #7aad7a;
 }
 
+/* ===============================================================
+   振替マーキング
+   ============================================================= */
 .dr-furikae-label {
     display: block;
     font-size: 10px;
@@ -502,10 +505,6 @@
     margin-top: 2px;
     white-space: nowrap;
     letter-spacing: .01em;
-}
-
-.dr-row-sun .dr-furikae-label {
-    color: #c0392b;
 }
 
 /* ===============================================================
@@ -569,4 +568,41 @@
 tr[data-auto="false"] .dr-kintai-select {
     border-color: #2e6da4;
     background: #f0f7ff;
+}
+
+/* ===============================================================
+   所属フィルターチップ
+   ============================================================= */
+.dr-affil-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.dr-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 14px;
+    border: 1.5px solid #c3cdd8;
+    border-radius: 14px;
+    background: #fff;
+    color: #555;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    letter-spacing: .03em;
+}
+
+.dr-chip:hover {
+    border-color: #2e6da4;
+    color: #2e6da4;
+}
+
+.dr-chip.dr-chip-active {
+    background: #2e6da4;
+    border-color: #2e6da4;
+    color: #fff;
 }
