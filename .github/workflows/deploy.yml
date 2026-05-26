@@ -1,21 +1,18 @@
-name: Deploy to XSERVER
-
 on:
   push:
     branches:
-      - main
+      - staging
 
 jobs:
-  deploy:
+  deploy-personal:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
-      - name: FTP Deploy
+      - name: FTP Deploy to Personal Test
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./
-          server-dir: /xs969605.xsrv.jp/public_html/inhouse/wp-content/plugins/driver-report/
+          server: ${{ secrets.XSERVER_HOST_s }}
+          username: ${{ secrets.XSERVER_USER_s }}
+          password: ${{ secrets.XSERVER_KEY_s }}
+          server-dir: /labs-ims.com/public_html/tanpoposub-test.labs-ims.com/wp-content/plugins/dirver-report/
+          dangerous-clean-slate: false
