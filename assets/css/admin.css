@@ -277,21 +277,17 @@
     text-align: left;
     min-width: 80px;
     font-weight: 600;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
 }
 
 .dr-date-row {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    display: block;
 }
 
 .dr-dow {
-    display: inline-block;
+    display: inline;
     font-size: 11px;
     color: #666;
+    margin-left: 4px;
 }
 
 /* 列幅 */
