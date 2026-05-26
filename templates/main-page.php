@@ -183,8 +183,12 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <td class="wcol-min dr-cell-na">―</td>
                             <td class="wcol-min dr-cell-na">―</td>
                             <td class="wcol-min dr-cell-na">―</td>
-                            <td class="wcol-min dr-cell-na">―</td>
-                            <td class="wcol-min dr-cell-na">―</td>
+                            <td class="wcol-min <?php echo ( (int)$w['day_overtime_min'] > 0 ) ? 'dr-cell-over' : ''; ?>">
+                                <?php echo esc_html( Tanpopo_DriverReport::format_min( $w['day_overtime_min'] ) ); ?>
+                            </td>
+                            <td class="wcol-min <?php echo ( (int)$w['week_overtime_min'] > 0 ) ? 'dr-cell-over' : ''; ?>">
+                                <?php echo esc_html( Tanpopo_DriverReport::format_min( $w['week_overtime_min'] ) ); ?>
+                            </td>
                             <td class="wcol-min dr-cell-na">―</td>
                             <?php else : ?>
                             <td class="wcol-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $w['kousoku_min'] ) ); ?></td>
