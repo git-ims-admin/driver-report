@@ -8,7 +8,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.3' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.8' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -19,11 +19,11 @@ class Tanpopo_DriverReport {
     const KINTAI_TYPES = [ '出勤', '法定休', '所定休', '年休', '振替休', '振替出勤', '緊急出勤' ];
 
     public function __construct() {
-        add_action( 'admin_menu',            [ $this, 'add_menu' ] );
-        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-        register_activation_hook( __FILE__,  [ $this, 'activate' ] );
-    }
-
+            add_action( 'admin_menu',            [ $this, 'add_menu' ] );
+            add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+            add_action( 'admin_init',            [ $this, 'migrate_existing_tables' ] );
+            register_activation_hook( __FILE__,  [ $this, 'activate' ] );
+        }
     /* ---------------------------------------------------------------
      * プラグイン有効化：wp_dr_carryover テーブル作成
      * ------------------------------------------------------------- */
@@ -48,6 +48,18 @@ class Tanpopo_DriverReport {
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
     }
+        public function migrate_existing_tables() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'dr_carryover';
+        $cols  = $wpdb->get_col( "DESCRIBE `{$table}`", 0 );
+        if ( ! in_array( 'overtime_min', $cols, true ) ) {
+            $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN `overtime_min` INT NOT NULL DEFAULT 0 AFTER `midnight_min`" );
+        }
+        if ( ! in_array( 'week_overtime_min', $cols, true ) ) {
+            $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN `week_overtime_min` INT NOT NULL DEFAULT 0 AFTER `overtime_min`" );
+        }
+    }
+
 
     /* ---------------------------------------------------------------
      * メニュー登録
@@ -347,8 +359,8 @@ class Tanpopo_DriverReport {
                 'drive_min'          => $carry_drive,
                 'cargo_min'          => $carry_cargo,
                 'break_min'          => $carry_kousoku - $carry_labor,
-                'day_overtime_min'   => 0,
-                'week_overtime_min'  => 0,
+                'day_overtime_min'   => $carry_overtime,
+                'week_overtime_min'  => $carry_week_overtime,
                 'confirmed_overtime' => 0,
                 'midnight_min'       => $carry_midnight,
                 'carry_days'         => 0,
@@ -442,12 +454,14 @@ class Tanpopo_DriverReport {
             if ( $is_carryover ) {
                 $next_month = date( 'Y-m', strtotime( $month_start_str . ' +1 month' ) );
                 $this->save_carryover( $crew_code, $next_month, [
-                    'labor_min'    => $sum['labor_min']    - ( $is_first_week ? $carry_labor    : 0 ),
-                    'drive_min'    => $sum['drive_min']    - ( $is_first_week ? $carry_drive    : 0 ),
-                    'cargo_min'    => $sum['cargo_min']    - ( $is_first_week ? $carry_cargo    : 0 ),
-                    'kousoku_min'  => $sum['kousoku_min']  - ( $is_first_week ? $carry_kousoku  : 0 ),
-                    'midnight_min' => $sum['midnight_min'] - ( $is_first_week ? $carry_midnight : 0 ),
-                    'days'         => $sum['days'],
+                    'labor_min'        => $sum['labor_min']    - ( $is_first_week ? $carry_labor    : 0 ),
+                    'drive_min'        => $sum['drive_min']    - ( $is_first_week ? $carry_drive    : 0 ),
+                    'cargo_min'        => $sum['cargo_min']    - ( $is_first_week ? $carry_cargo    : 0 ),
+                    'kousoku_min'      => $sum['kousoku_min']  - ( $is_first_week ? $carry_kousoku  : 0 ),
+                    'midnight_min'     => $sum['midnight_min'] - ( $is_first_week ? $carry_midnight : 0 ),
+                    'overtime_min'     => $sum['overtime_min'],
+                    'week_overtime_min'=> $week_overtime,
+                    'days'             => $sum['days'],
                 ] );
             }
 
