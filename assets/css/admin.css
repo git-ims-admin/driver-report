@@ -606,3 +606,23 @@ tr[data-auto="false"] .dr-kintai-select {
     border-color: #2e6da4;
     color: #fff;
 }
+
+/* ===============================================================
+   保存ボタン
+   ============================================================= */
+.dr-btn-save {
+    background: #2c5f2e;
+    color: #fff;
+    margin-left: auto;
+}
+
+.dr-btn-save:hover {
+    background: #1e4220;
+    color: #fff;
+}
+
+.dr-btn-save:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+    opacity: .75;
+}

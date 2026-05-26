@@ -29,6 +29,9 @@ class Tanpopo_DriverReport {
         add_action( 'wp_ajax_dr_holiday_save_rule',    [ $this, 'ajax_holiday_save_rule' ] );
         add_action( 'wp_ajax_dr_holiday_delete_rule',  [ $this, 'ajax_holiday_delete_rule' ] );
         add_action( 'wp_ajax_dr_holiday_toggle_rule',  [ $this, 'ajax_holiday_toggle_rule' ] );
+
+        // 勤怠種別保存 AJAX
+        add_action( 'wp_ajax_dr_kintai_save', [ $this, 'ajax_kintai_save' ] );
     }
     /* ---------------------------------------------------------------
      * プラグイン有効化：wp_dr_carryover テーブル作成
@@ -71,6 +74,21 @@ class Tanpopo_DriverReport {
             UNIQUE KEY `uq_affil_rule` (`affiliation_id`, `day_of_week`, `week_numbers`)
         ) {$charset};";
         dbDelta( $sql2 );
+
+        // wp_dr_kintai_log（勤怠種別保存）
+        $table3 = $wpdb->prefix . 'dr_kintai_log';
+        $sql3 = "CREATE TABLE IF NOT EXISTS `{$table3}` (
+            `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `crew_code`      VARCHAR(20)  NOT NULL,
+            `work_date`      DATE         NOT NULL,
+            `kintai_type`    VARCHAR(20)  NOT NULL DEFAULT '',
+            `furikae_label`  VARCHAR(30)  NOT NULL DEFAULT '',
+            `is_manual`      TINYINT(1)   NOT NULL DEFAULT 0,
+            `updated_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uq_crew_date` (`crew_code`(20), `work_date`)
+        ) {$charset};";
+        dbDelta( $sql3 );
     }
     public function migrate_existing_tables() {
         global $wpdb;
@@ -87,8 +105,7 @@ class Tanpopo_DriverReport {
 
         // dr_holiday_rules テーブルが存在しなければ作成
         $table2 = $wpdb->prefix . 'dr_holiday_rules';
-        $exists = $wpdb->get_var( "SHOW TABLES LIKE '{$table2}'" );
-        if ( ! $exists ) {
+        if ( ! $wpdb->get_var( "SHOW TABLES LIKE '{$table2}'" ) ) {
             $charset = $wpdb->get_charset_collate();
             require_once ABSPATH . 'wp-admin/includes/upgrade.php';
             $sql = "CREATE TABLE IF NOT EXISTS `{$table2}` (
@@ -100,6 +117,25 @@ class Tanpopo_DriverReport {
                 `updated_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 PRIMARY KEY (`id`),
                 UNIQUE KEY `uq_affil_rule` (`affiliation_id`, `day_of_week`, `week_numbers`)
+            ) {$charset};";
+            dbDelta( $sql );
+        }
+
+        // dr_kintai_log テーブルが存在しなければ作成
+        $table3 = $wpdb->prefix . 'dr_kintai_log';
+        if ( ! $wpdb->get_var( "SHOW TABLES LIKE '{$table3}'" ) ) {
+            $charset = $wpdb->get_charset_collate();
+            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+            $sql = "CREATE TABLE IF NOT EXISTS `{$table3}` (
+                `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `crew_code`      VARCHAR(20)  NOT NULL,
+                `work_date`      DATE         NOT NULL,
+                `kintai_type`    VARCHAR(20)  NOT NULL DEFAULT '',
+                `furikae_label`  VARCHAR(30)  NOT NULL DEFAULT '',
+                `is_manual`      TINYINT(1)   NOT NULL DEFAULT 0,
+                `updated_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uq_crew_date` (`crew_code`(20), `work_date`)
             ) {$charset};";
             dbDelta( $sql );
         }
@@ -306,6 +342,10 @@ class Tanpopo_DriverReport {
         $all_rules    = $this->get_active_rules_by_affiliation();
         $shitei_rules = $all_rules[ $affiliation_id ] ?? [];
 
+        // DB保存済み勤怠を取得
+        $saved_kintai = $this->get_saved_kintai( $crew_code, $year_month );
+        $has_saved    = ! empty( $saved_kintai );
+
         $dow_ja = [ 'Sun'=>'日','Mon'=>'月','Tue'=>'火','Wed'=>'水','Thu'=>'木','Fri'=>'金','Sat'=>'土' ];
         $rows   = [];
         $cursor = new DateTime( $start_date );
@@ -383,6 +423,7 @@ class Tanpopo_DriverReport {
                 'has_data'          => $k !== null,
                 'default_kintai'    => $default_kintai,
                 'furikae_label'     => '',         // パス2で設定
+                'is_manual'         => false,
                 'start_time'        => $start_time,
                 'end_time'          => $end_time,
                 'kousoku_min'       => $kousoku_min,
@@ -397,8 +438,22 @@ class Tanpopo_DriverReport {
             $cursor->modify('+1 day');
         }
 
-        // ---- パス2：自動判定ロジック ----
-        $rows = $this->apply_auto_kintai( $rows );
+        // ---- パス2：DB保存データがあれば優先適用、なければ自動判定 ----
+        if ( $has_saved ) {
+            foreach ( $rows as &$r ) {
+                $saved = $saved_kintai[ $r['date'] ] ?? null;
+                if ( $saved !== null ) {
+                    $r['default_kintai'] = $saved['kintai_type'];
+                    $r['furikae_label']  = $saved['furikae_label'];
+                    $r['is_manual']      = (bool) $saved['is_manual'];
+                }
+            }
+            unset( $r );
+            // 警告チェックのみ実施（振替割当は行わない）
+            $rows = $this->check_alerts_only( $rows );
+        } else {
+            $rows = $this->apply_auto_kintai( $rows );
+        }
 
         return $rows;
     }
@@ -547,6 +602,44 @@ class Tanpopo_DriverReport {
             $rows[0]['_alerts'] = $furikae_warnings;
         }
 
+        return $rows;
+    }
+
+    /**
+     * DB保存データ表示時：振替割当は行わず警告チェックのみ実施
+     */
+    private function check_alerts_only( $rows ) {
+        $final_houtei      = 0;
+        $final_houtei_furi = 0;
+        $final_shitei      = 0;
+        $alerts            = [];
+
+        foreach ( $rows as $r ) {
+            if ( $r['default_kintai'] === '法定休' )     $final_houtei++;
+            if ( $r['default_kintai'] === '法定振替休' ) $final_houtei_furi++;
+            if ( $r['default_kintai'] === '所定休' )     $final_shitei++;
+        }
+
+        $houtei_total = $final_houtei + $final_houtei_furi;
+        if ( $houtei_total < 4 || $houtei_total > 5 ) {
+            $alerts[] = [
+                'type'    => 'warn',
+                'message' => sprintf(
+                    '法定休の合計（法定休%d日＋法定振替休%d日＝%d日）が正常範囲（4〜5日）を外れています。休日の内容を確認してください',
+                    $final_houtei, $final_houtei_furi, $houtei_total
+                ),
+            ];
+        }
+        if ( $final_shitei > 2 ) {
+            $alerts[] = [
+                'type'    => 'warn',
+                'message' => '所定休が2日を超えています。所定休以外の日数を確認し休日の内容を変更してください',
+            ];
+        }
+
+        if ( ! empty( $rows ) ) {
+            $rows[0]['_alerts'] = $alerts;
+        }
         return $rows;
     }
 
@@ -848,6 +941,68 @@ class Tanpopo_DriverReport {
         $is_active = isset( $_POST['is_active'] ) ? (int) $_POST['is_active'] : 0;
         $wpdb->update( $wpdb->prefix . 'dr_holiday_rules', [ 'is_active' => $is_active ], [ 'id' => $id ] );
         wp_send_json_success();
+    }
+
+    /* ===============================================================
+     * 勤怠種別 保存・ロード
+     * ============================================================= */
+
+    /** 月分の保存済み勤怠を取得（日付キー） */
+    private function get_saved_kintai( $crew_code, $year_month ) {
+        global $wpdb;
+        $start = $year_month . '-01';
+        $end   = date( 'Y-m-t', strtotime( $start ) );
+        $rows  = $wpdb->get_results( $wpdb->prepare( "
+            SELECT work_date, kintai_type, furikae_label, is_manual
+            FROM `{$wpdb->prefix}dr_kintai_log`
+            WHERE crew_code COLLATE utf8mb4_unicode_520_ci = %s
+              AND work_date BETWEEN %s AND %s
+        ", $crew_code, $start, $end ), ARRAY_A );
+        $map = [];
+        foreach ( (array) $rows as $r ) {
+            $map[ $r['work_date'] ] = $r;
+        }
+        return $map;
+    }
+
+    /** 勤怠種別 AJAX 保存ハンドラー */
+    public function ajax_kintai_save() {
+        check_ajax_referer( 'dr_holiday_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( -1 );
+
+        global $wpdb;
+        $table      = $wpdb->prefix . 'dr_kintai_log';
+        $crew_code  = isset( $_POST['crew_code'] )  ? sanitize_text_field( wp_unslash( $_POST['crew_code'] ) )  : '';
+        $rows_raw   = isset( $_POST['rows'] )       ? wp_unslash( $_POST['rows'] )                              : [];
+
+        if ( ! $crew_code || ! is_array( $rows_raw ) ) {
+            wp_send_json_error( [ 'message' => 'パラメータが不正です' ] );
+        }
+
+        $saved = 0;
+        foreach ( $rows_raw as $row ) {
+            $work_date     = sanitize_text_field( $row['date']          ?? '' );
+            $kintai_type   = sanitize_text_field( $row['kintai_type']   ?? '' );
+            $furikae_label = sanitize_text_field( $row['furikae_label'] ?? '' );
+            $is_manual     = (int) ( $row['is_manual'] ?? 0 );
+
+            if ( ! $work_date ) continue;
+
+            $wpdb->query( $wpdb->prepare(
+                "INSERT INTO `{$table}`
+                    (`crew_code`, `work_date`, `kintai_type`, `furikae_label`, `is_manual`)
+                 VALUES (%s, %s, %s, %s, %d)
+                 ON DUPLICATE KEY UPDATE
+                    `kintai_type`   = VALUES(`kintai_type`),
+                    `furikae_label` = VALUES(`furikae_label`),
+                    `is_manual`     = VALUES(`is_manual`),
+                    `updated_at`    = NOW()",
+                $crew_code, $work_date, $kintai_type, $furikae_label, $is_manual
+            ) );
+            $saved++;
+        }
+
+        wp_send_json_success( [ 'saved' => $saved ] );
     }
 
     /* ===============================================================

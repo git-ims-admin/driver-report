@@ -72,6 +72,53 @@
         $row.attr('data-auto', 'false');
     });
 
+    /* ---- 保存（更新）ボタン ---- */
+    $(document).on('click', '#dr-btn-save', function () {
+        var $btn = $(this);
+        var crewCode = $btn.data('crew');
+        var month = $btn.data('month');
+        var $msg = $('#dr-save-message');
+
+        // 全行の勤怠データを収集
+        var rows = [];
+        $('tbody tr[data-date]').each(function () {
+            var $tr = $(this);
+            rows.push({
+                date: $tr.data('date'),
+                kintai_type: $tr.find('.dr-kintai-select').val() || '',
+                furikae_label: $tr.data('furikae') || '',
+                is_manual: $tr.attr('data-auto') === 'false' ? 1 : 0,
+            });
+        });
+
+        $btn.prop('disabled', true).text('保存中...');
+        $msg.hide();
+
+        $.post(drData.ajaxUrl, {
+            action: 'dr_kintai_save',
+            nonce: drData.nonce,
+            crew_code: crewCode,
+            rows: rows,
+        }, function (res) {
+            if (res.success) {
+                $msg.text(res.data.saved + '件を保存しました')
+                    .css({ color: '#2c5f2e', background: '#f0fff0', borderLeft: '4px solid #2c5f2e', padding: '8px 20px' })
+                    .show();
+            } else {
+                $msg.text('保存に失敗しました：' + (res.data.message || ''))
+                    .css({ color: '#7a1a1a', background: '#fff0f0', borderLeft: '4px solid #d63638', padding: '8px 20px' })
+                    .show();
+            }
+        }).fail(function () {
+            $msg.text('通信エラーが発生しました')
+                .css({ color: '#7a1a1a', background: '#fff0f0', borderLeft: '4px solid #d63638', padding: '8px 20px' })
+                .show();
+        }).always(function () {
+            $btn.prop('disabled', false).html('<span class="dashicons dashicons-saved"></span> 保存（更新）');
+            setTimeout(function () { $msg.fadeOut(); }, 4000);
+        });
+    });
+
     /* ================================================================
        休日マスタ設定ページ
        ================================================================ */

@@ -85,10 +85,20 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
 
     <!-- 集計結果 -->
     <div class="dr-card">
-        <div class="dr-card-header">
-            <span class="dashicons dashicons-id-alt"></span>
-            <?php echo esc_html( $selected_month ); ?>　<?php echo esc_html( $emp_info['name'] ); ?> さんの集計表
+        <div class="dr-card-header" style="justify-content:space-between;">
+            <span>
+                <span class="dashicons dashicons-id-alt"></span>
+                <?php echo esc_html( $selected_month ); ?>　<?php echo esc_html( $emp_info['name'] ); ?> さんの集計表
+            </span>
+            <button type="button" id="dr-btn-save"
+                class="dr-btn dr-btn-save"
+                data-crew="<?php echo esc_attr( $selected_crew ); ?>"
+                data-month="<?php echo esc_attr( $selected_month ); ?>">
+                <span class="dashicons dashicons-saved"></span>
+                保存（更新）
+            </button>
         </div>
+        <div id="dr-save-message" style="display:none;padding:8px 20px;font-size:13px;font-weight:700;"></div>
         <div class="dr-card-body">
 
             <!-- 社員情報 -->
@@ -148,7 +158,10 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                         elseif ( $row['is_sat'] )     $row_class = 'dr-row-sat';
                         elseif ( ! $row['has_data'] ) $row_class = 'dr-row-off';
                     ?>
-                        <tr class="<?php echo $row_class; ?>" data-auto="true">
+                        <tr class="<?php echo $row_class; ?>"
+                            data-date="<?php echo esc_attr( $row['date'] ); ?>"
+                            data-auto="<?php echo $row['is_manual'] ? 'false' : 'true'; ?>"
+                            data-furikae="<?php echo esc_attr( $row['furikae_label'] ); ?>">
                             <td class="col-date">
                                 <span class="dr-date-row">
                                     <?php echo esc_html( substr( $row['date'], 5 ) ); ?>
