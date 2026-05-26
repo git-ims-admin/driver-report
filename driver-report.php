@@ -412,6 +412,12 @@ class Tanpopo_DriverReport {
             $label      = $is_carryover ? '（残業繰越）' : ( '第' . $week_index . '週計' );
             $disp_start = max( $week_start_str, $month_start_str );
             $disp_end   = min( $week_end_str,   $month_end_str   );
+            
+            $net_kousoku  = $sum['kousoku_min']  - ( $is_first_week ? $carry_kousoku  : 0 );
+            $net_labor    = $sum['labor_min']    - ( $is_first_week ? $carry_labor    : 0 );
+            $net_drive    = $sum['drive_min']    - ( $is_first_week ? $carry_drive    : 0 );
+            $net_cargo    = $sum['cargo_min']    - ( $is_first_week ? $carry_cargo    : 0 );
+            $net_midnight = $sum['midnight_min'] - ( $is_first_week ? $carry_midnight : 0 );
 
             $weeks[] = [
                 'label'              => $label,
@@ -420,15 +426,15 @@ class Tanpopo_DriverReport {
                 'disp_start'         => date( 'Y/m/d', strtotime( $disp_start ) ),
                 'disp_end'           => date( 'Y/m/d', strtotime( $disp_end   ) ),
                 'days'               => $sum['days'],
-                'kousoku_min'        => $sum['kousoku_min'],
-                'labor_min'          => $sum['labor_min'],
-                'drive_min'          => $sum['drive_min'],
-                'cargo_min'          => $sum['cargo_min'],
-                'break_min'          => $sum['kousoku_min'] - $sum['labor_min'],
+                'kousoku_min'        => $net_kousoku,
+                'labor_min'          => $net_labor,
+                'drive_min'          => $net_drive,
+                'cargo_min'          => $net_cargo,
+                'break_min'          => $net_kousoku - $net_labor,
                 'day_overtime_min'   => $sum['overtime_min'],
                 'week_overtime_min'  => $is_carryover ? null : $week_overtime,
                 'confirmed_overtime' => $is_carryover ? null : $confirmed_overtime,
-                'midnight_min'       => $sum['midnight_min'],
+                'midnight_min'       => $net_midnight,
                 'carry_days'         => $is_first_week ? $carry_days : 0,
             ];
 
