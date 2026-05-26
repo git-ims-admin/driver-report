@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 勤怠管理 | 長距離ドライバー
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
- * Version:     1.1.4
+ * Version:     1.1.8
  * Author:      有限会社たんぽぽ運送
  */
 
@@ -16,40 +16,66 @@ if ( ! class_exists( 'Tanpopo_DriverReport' ) ) :
 
 class Tanpopo_DriverReport {
 
-    const KINTAI_TYPES = [ '出勤', '法定休', '所定休', '年休', '振替休', '振替出勤', '緊急出勤' ];
+    const KINTAI_TYPES = [ '出勤', '法定休', '法定振替休', '所定休', '所定振替休', '有給', '欠勤', '緊急出動' ];
 
     public function __construct() {
-            add_action( 'admin_menu',            [ $this, 'add_menu' ] );
-            add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-            add_action( 'admin_init',            [ $this, 'migrate_existing_tables' ] );
-            register_activation_hook( __FILE__,  [ $this, 'activate' ] );
-        }
+        add_action( 'admin_menu',            [ $this, 'add_menu' ] );
+        add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+        add_action( 'admin_init',            [ $this, 'migrate_existing_tables' ] );
+        register_activation_hook( __FILE__,  [ $this, 'activate' ] );
+
+        // 休日マスタ AJAX
+        add_action( 'wp_ajax_dr_holiday_get_rules',    [ $this, 'ajax_holiday_get_rules' ] );
+        add_action( 'wp_ajax_dr_holiday_save_rule',    [ $this, 'ajax_holiday_save_rule' ] );
+        add_action( 'wp_ajax_dr_holiday_delete_rule',  [ $this, 'ajax_holiday_delete_rule' ] );
+        add_action( 'wp_ajax_dr_holiday_toggle_rule',  [ $this, 'ajax_holiday_toggle_rule' ] );
+    }
     /* ---------------------------------------------------------------
      * プラグイン有効化：wp_dr_carryover テーブル作成
      * ------------------------------------------------------------- */
     public function activate() {
         global $wpdb;
-        $table   = $wpdb->prefix . 'dr_carryover';
         $charset = $wpdb->get_charset_collate();
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+        // wp_dr_carryover
+        $table = $wpdb->prefix . 'dr_carryover';
         $sql = "CREATE TABLE IF NOT EXISTS `{$table}` (
-            `id`           INT UNSIGNED     NOT NULL AUTO_INCREMENT,
-            `crew_code`    VARCHAR(20)      NOT NULL,
-            `year_month`   CHAR(7)          NOT NULL COMMENT '繰越先の月 YYYY-MM',
-            `labor_min`    INT              NOT NULL DEFAULT 0,
-            `drive_min`    INT              NOT NULL DEFAULT 0,
-            `cargo_min`    INT              NOT NULL DEFAULT 0,
-            `kousoku_min`  INT              NOT NULL DEFAULT 0,
-            `midnight_min` INT              NOT NULL DEFAULT 0,
-            `days`         TINYINT UNSIGNED NOT NULL DEFAULT 0,
-            `updated_at`   DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            `id`               INT UNSIGNED     NOT NULL AUTO_INCREMENT,
+            `crew_code`        VARCHAR(20)      NOT NULL,
+            `year_month`       CHAR(7)          NOT NULL COMMENT '繰越先の月 YYYY-MM',
+            `labor_min`        INT              NOT NULL DEFAULT 0,
+            `drive_min`        INT              NOT NULL DEFAULT 0,
+            `cargo_min`        INT              NOT NULL DEFAULT 0,
+            `kousoku_min`      INT              NOT NULL DEFAULT 0,
+            `midnight_min`     INT              NOT NULL DEFAULT 0,
+            `overtime_min`     INT              NOT NULL DEFAULT 0,
+            `week_overtime_min` INT             NOT NULL DEFAULT 0,
+            `days`             TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            `updated_at`       DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uq_crew_month` (`crew_code`(20), `year_month`)
         ) {$charset};";
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql );
+
+        // wp_dr_holiday_rules（所定休日マスタ）
+        $table2 = $wpdb->prefix . 'dr_holiday_rules';
+        $sql2 = "CREATE TABLE IF NOT EXISTS `{$table2}` (
+            `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            `affiliation_id` INT UNSIGNED NOT NULL COMMENT 'mst_affiliation.id',
+            `day_of_week`    TINYINT      NOT NULL COMMENT '0=日 1=月 2=火 3=水 4=木 5=金 6=土',
+            `week_numbers`   VARCHAR(20)  NOT NULL COMMENT '対象週 例: 2,4',
+            `is_active`      TINYINT(1)   NOT NULL DEFAULT 1,
+            `updated_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uq_affil_rule` (`affiliation_id`, `day_of_week`, `week_numbers`)
+        ) {$charset};";
+        dbDelta( $sql2 );
     }
-        public function migrate_existing_tables() {
+    public function migrate_existing_tables() {
         global $wpdb;
+
+        // dr_carryover カラム追加
         $table = $wpdb->prefix . 'dr_carryover';
         $cols  = $wpdb->get_col( "DESCRIBE `{$table}`", 0 );
         if ( ! in_array( 'overtime_min', $cols, true ) ) {
@@ -57,6 +83,25 @@ class Tanpopo_DriverReport {
         }
         if ( ! in_array( 'week_overtime_min', $cols, true ) ) {
             $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN `week_overtime_min` INT NOT NULL DEFAULT 0 AFTER `overtime_min`" );
+        }
+
+        // dr_holiday_rules テーブルが存在しなければ作成
+        $table2 = $wpdb->prefix . 'dr_holiday_rules';
+        $exists = $wpdb->get_var( "SHOW TABLES LIKE '{$table2}'" );
+        if ( ! $exists ) {
+            $charset = $wpdb->get_charset_collate();
+            require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+            $sql = "CREATE TABLE IF NOT EXISTS `{$table2}` (
+                `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `affiliation_id` INT UNSIGNED NOT NULL COMMENT 'mst_affiliation.id',
+                `day_of_week`    TINYINT      NOT NULL COMMENT '0=日 1=月 2=火 3=水 4=木 5=金 6=土',
+                `week_numbers`   VARCHAR(20)  NOT NULL COMMENT '対象週 例: 2,4',
+                `is_active`      TINYINT(1)   NOT NULL DEFAULT 1,
+                `updated_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uq_affil_rule` (`affiliation_id`, `day_of_week`, `week_numbers`)
+            ) {$charset};";
+            dbDelta( $sql );
         }
     }
 
@@ -74,6 +119,22 @@ class Tanpopo_DriverReport {
             'dashicons-car',
             28
         );
+        add_submenu_page(
+            'driver-report',
+            '集計表示',
+            '集計表示',
+            'manage_options',
+            'driver-report',
+            [ $this, 'render_page' ]
+        );
+        add_submenu_page(
+            'driver-report',
+            '休日マスタ設定',
+            '休日マスタ設定',
+            'manage_options',
+            'driver-report-holiday',
+            [ $this, 'render_holiday_page' ]
+        );
     }
 
     /* ---------------------------------------------------------------
@@ -81,11 +142,13 @@ class Tanpopo_DriverReport {
      * ------------------------------------------------------------- */
     public function enqueue_assets() {
         $page = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : '';
-        if ( $page !== 'driver-report' ) return;
+        if ( ! in_array( $page, [ 'driver-report', 'driver-report-holiday' ], true ) ) return;
         wp_enqueue_style( 'dr-admin', DR_PLUGIN_URL . 'assets/css/admin.css', [], DR_VERSION );
         wp_enqueue_script( 'dr-admin', DR_PLUGIN_URL . 'assets/js/admin.js', [ 'jquery' ], DR_VERSION, true );
         wp_localize_script( 'dr-admin', 'drData', [
             'defaultMonth' => date( 'Y-m', strtotime( 'first day of last month' ) ),
+            'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+            'nonce'        => wp_create_nonce( 'dr_holiday_nonce' ),
         ] );
     }
 
@@ -225,16 +288,29 @@ class Tanpopo_DriverReport {
             }
         }
 
+        // 社員の affiliation_id 取得
+        $affiliation_id = (int) $wpdb->get_var( $wpdb->prepare( "
+            SELECT affiliation_id FROM `{$wpdb->prefix}emp_master`
+            WHERE crew_code COLLATE utf8mb4_unicode_520_ci = %s
+            LIMIT 1
+        ", $crew_code ) );
+
+        // 所定休日ルール取得
+        $all_rules    = $this->get_active_rules_by_affiliation();
+        $shitei_rules = $all_rules[ $affiliation_id ] ?? [];
+
         $dow_ja = [ 'Sun'=>'日','Mon'=>'月','Tue'=>'火','Wed'=>'水','Thu'=>'木','Fri'=>'金','Sat'=>'土' ];
         $rows   = [];
         $cursor = new DateTime( $start_date );
         $last   = new DateTime( $end_date );
 
+        // ---- パス1：基本データを全日付分生成 ----
         while ( $cursor <= $last ) {
             $date_str = $cursor->format('Y-m-d');
             $dow      = $dow_ja[ $cursor->format('D') ];
-            $is_sun   = $cursor->format('N') == 7;
-            $is_sat   = $cursor->format('N') == 6;
+            $dow_num  = (int) $cursor->format('w'); // 0=日〜6=土
+            $is_sun   = $dow_num === 0;
+            $is_sat   = $dow_num === 6;
 
             $k = $kousoku_by_date[ $date_str ] ?? null;
             $t = $tenrec_by_date[ $date_str ]  ?? null;
@@ -276,29 +352,186 @@ class Tanpopo_DriverReport {
 
             $midnight_min = $k ? (int)($k['midnight_min'] ?? 0) : null;
 
-            if ( $k !== null )     $default_kintai = '出勤';
-            elseif ( $is_sun )     $default_kintai = '法定休';
-            else                   $default_kintai = '所定休';
+            // 所定休日フラグ判定
+            $is_shitei_holiday = $this->is_shitei_holiday( $date_str, $dow_num, $shitei_rules );
+
+            // 暫定勤怠種別（後のパス2で上書き）
+            if ( $k !== null ) {
+                $default_kintai = '出勤';
+            } elseif ( $is_sun ) {
+                $default_kintai = '法定休';       // 後で4日超チェック
+            } elseif ( $is_shitei_holiday ) {
+                $default_kintai = '所定休';       // 後で2日超チェック
+            } else {
+                $default_kintai = '';             // ---選択---
+            }
 
             $rows[] = [
-                'date'           => $date_str,
-                'dow'            => $dow,
-                'is_sun'         => $is_sun,
-                'is_sat'         => $is_sat,
-                'has_data'       => $k !== null,
-                'default_kintai' => $default_kintai,
-                'start_time'     => $start_time,
-                'end_time'       => $end_time,
-                'kousoku_min'    => $kousoku_min,
-                'labor_min'      => $labor_min,
-                'drive_min'      => $drive_min,
-                'cargo_min'      => $cargo_min,
-                'break_calc_min' => $break_calc_min,
-                'overtime_min'   => $overtime_min,
-                'midnight_min'   => $midnight_min,
+                'date'              => $date_str,
+                'dow'               => $dow,
+                'dow_num'           => $dow_num,
+                'is_sun'            => $is_sun,
+                'is_sat'            => $is_sat,
+                'is_shitei_holiday' => $is_shitei_holiday,
+                'has_data'          => $k !== null,
+                'default_kintai'    => $default_kintai,
+                'furikae_label'     => '',         // パス2で設定
+                'start_time'        => $start_time,
+                'end_time'          => $end_time,
+                'kousoku_min'       => $kousoku_min,
+                'labor_min'         => $labor_min,
+                'drive_min'         => $drive_min,
+                'cargo_min'         => $cargo_min,
+                'break_calc_min'    => $break_calc_min,
+                'overtime_min'      => $overtime_min,
+                'midnight_min'      => $midnight_min,
             ];
 
             $cursor->modify('+1 day');
+        }
+
+        // ---- パス2：自動判定ロジック ----
+        $rows = $this->apply_auto_kintai( $rows );
+
+        return $rows;
+    }
+
+    /**
+     * 所定休日フラグ判定
+     * 指定日が所定休日ルールに該当するか
+     */
+    private function is_shitei_holiday( $date_str, $dow_num, $rules ) {
+        if ( empty( $rules ) ) return false;
+        foreach ( $rules as $rule ) {
+            if ( (int)$rule['day_of_week'] !== $dow_num ) continue;
+            $week_nums = array_map( 'intval', explode( ',', $rule['week_numbers'] ) );
+            // その月における第N曜日を計算
+            $week_of_month = $this->week_of_month_for_dow( $date_str, $dow_num );
+            if ( in_array( $week_of_month, $week_nums, true ) ) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 指定日が当月における第何番目の同曜日かを返す
+     */
+    private function week_of_month_for_dow( $date_str, $dow_num ) {
+        $month_start = substr( $date_str, 0, 7 ) . '-01';
+        $count = 0;
+        $cursor = new DateTime( $month_start );
+        $target = new DateTime( $date_str );
+        while ( $cursor <= $target ) {
+            if ( (int)$cursor->format('w') === $dow_num ) $count++;
+            $cursor->modify('+1 day');
+        }
+        return $count;
+    }
+
+    /**
+     * パス2：自動勤怠種別割当
+     *
+     * 処理順：
+     * 1. 法定休日（日曜）が4日を超えた分は '' に戻す
+     * 2. 所定休日が2日を超えた分は '' に戻す
+     * 3. 出勤した日曜 → 法定振替休を後続の空き日に割当
+     * 4. 出勤した所定休日 → 所定振替休を後続の空き日に割当
+     */
+    private function apply_auto_kintai( $rows ) {
+
+        // 日付 → index マップ
+        $date_index = [];
+        foreach ( $rows as $i => $r ) {
+            $date_index[ $r['date'] ] = $i;
+        }
+
+        // ① 法定休 4日超チェック
+        $houtei_count = 0;
+        foreach ( $rows as &$r ) {
+            if ( $r['default_kintai'] === '法定休' ) {
+                $houtei_count++;
+                if ( $houtei_count > 4 ) $r['default_kintai'] = '';
+            }
+        }
+        unset( $r );
+
+        // ② 所定休 2日超チェック
+        $shitei_count = 0;
+        foreach ( $rows as &$r ) {
+            if ( $r['default_kintai'] === '所定休' ) {
+                $shitei_count++;
+                if ( $shitei_count > 2 ) $r['default_kintai'] = '';
+            }
+        }
+        unset( $r );
+
+        // 振替割当の警告リスト（画面表示用）
+        $furikae_warnings = [];
+
+        // ③ 法定振替休割当（出勤した日曜 → 後続の空き日）
+        foreach ( $rows as $i => $r ) {
+            if ( $r['is_sun'] && $r['has_data'] && $r['default_kintai'] === '出勤' ) {
+                $assigned = false;
+                for ( $j = $i + 1; $j < count( $rows ); $j++ ) {
+                    if ( $rows[$j]['default_kintai'] === '' && ! $rows[$j]['has_data'] ) {
+                        $rows[$j]['default_kintai'] = '法定振替休';
+                        $rows[$j]['furikae_label']  = date( 'm/d', strtotime( $r['date'] ) ) . '(日)の振替';
+                        $assigned = true;
+                        break;
+                    }
+                }
+                if ( ! $assigned ) {
+                    $furikae_warnings[] = [
+                        'type'    => 'error',
+                        'message' => date( 'm/d', strtotime( $r['date'] ) ) . '(日)の振替休を割り当てられる日がありません',
+                    ];
+                }
+            }
+        }
+
+        // ④ 所定振替休割当（出勤した所定休日 → 後続の空き日）
+        foreach ( $rows as $i => $r ) {
+            if ( $r['is_shitei_holiday'] && $r['has_data'] && $r['default_kintai'] === '出勤' ) {
+                $assigned = false;
+                for ( $j = $i + 1; $j < count( $rows ); $j++ ) {
+                    if ( $rows[$j]['default_kintai'] === '' && ! $rows[$j]['has_data'] ) {
+                        $rows[$j]['default_kintai'] = '所定振替休';
+                        $rows[$j]['furikae_label']  = date( 'm/d', strtotime( $r['date'] ) ) . 'の振替';
+                        $assigned = true;
+                        break;
+                    }
+                }
+                if ( ! $assigned ) {
+                    $furikae_warnings[] = [
+                        'type'    => 'error',
+                        'message' => date( 'm/d', strtotime( $r['date'] ) ) . 'の振替休を割り当てられる日がありません',
+                    ];
+                }
+            }
+        }
+
+        // ⑤ 法定休・所定休の超過警告
+        $final_houtei = 0;
+        $final_shitei = 0;
+        foreach ( $rows as $r ) {
+            if ( $r['default_kintai'] === '法定休' ) $final_houtei++;
+            if ( $r['default_kintai'] === '所定休' ) $final_shitei++;
+        }
+        if ( $final_houtei > 4 ) {
+            array_unshift( $furikae_warnings, [
+                'type'    => 'warn',
+                'message' => '法定休が4日を超えています。法定休以外の日数を確認し休日の内容を変更してください',
+            ] );
+        }
+        if ( $final_shitei > 2 ) {
+            array_unshift( $furikae_warnings, [
+                'type'    => 'warn',
+                'message' => '所定休が2日を超えています。所定休以外の日数を確認し休日の内容を変更してください',
+            ] );
+        }
+
+        // 警告を rows に付加（テンプレートへの受け渡し用に先頭行へ格納）
+        if ( ! empty( $rows ) ) {
+            $rows[0]['_alerts'] = $furikae_warnings;
         }
 
         return $rows;
@@ -509,6 +742,120 @@ class Tanpopo_DriverReport {
         ];
 
         return [ 'weeks' => $weeks, 'total' => $total ];
+    }
+
+    /* ===============================================================
+     * 休日マスタ DB アクセス
+     * ============================================================= */
+
+    /** 全ルール取得（所属名付き） */
+    private function get_holiday_rules() {
+        global $wpdb;
+        return $wpdb->get_results( "
+            SELECT r.*, COALESCE( a.name, '（未設定）' ) AS affiliation_name
+            FROM `{$wpdb->prefix}dr_holiday_rules` r
+            LEFT JOIN `{$wpdb->prefix}mst_affiliation` a ON a.id = r.affiliation_id
+            ORDER BY a.sort_order ASC, r.day_of_week ASC
+        ", ARRAY_A ) ?: [];
+    }
+
+    /** 有効ルールを affiliation_id キーで取得（判定用） */
+    public function get_active_rules_by_affiliation() {
+        global $wpdb;
+        $rows = $wpdb->get_results( "
+            SELECT * FROM `{$wpdb->prefix}dr_holiday_rules`
+            WHERE is_active = 1
+        ", ARRAY_A ) ?: [];
+        $map = [];
+        foreach ( $rows as $r ) {
+            $map[ (int)$r['affiliation_id'] ][] = $r;
+        }
+        return $map;
+    }
+
+    /* ===============================================================
+     * 休日マスタ AJAX ハンドラー
+     * ============================================================= */
+
+    public function ajax_holiday_get_rules() {
+        check_ajax_referer( 'dr_holiday_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( -1 );
+        wp_send_json_success( $this->get_holiday_rules() );
+    }
+
+    public function ajax_holiday_save_rule() {
+        check_ajax_referer( 'dr_holiday_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( -1 );
+
+        global $wpdb;
+        $table        = $wpdb->prefix . 'dr_holiday_rules';
+        $id           = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+        $affil_id     = isset( $_POST['affiliation_id'] ) ? (int) $_POST['affiliation_id'] : 0;
+        $day_of_week  = isset( $_POST['day_of_week'] )    ? (int) $_POST['day_of_week']    : 0;
+        $week_numbers = isset( $_POST['week_numbers'] )   ? sanitize_text_field( wp_unslash( $_POST['week_numbers'] ) ) : '';
+
+        if ( ! $affil_id || $week_numbers === '' ) {
+            wp_send_json_error( [ 'message' => '所属と対象週は必須です' ] );
+        }
+
+        $data = [
+            'affiliation_id' => $affil_id,
+            'day_of_week'    => $day_of_week,
+            'week_numbers'   => $week_numbers,
+            'is_active'      => 1,
+        ];
+
+        if ( $id > 0 ) {
+            $wpdb->update( $table, $data, [ 'id' => $id ] );
+        } else {
+            $wpdb->insert( $table, $data );
+            $id = $wpdb->insert_id;
+        }
+
+        if ( $wpdb->last_error ) {
+            wp_send_json_error( [ 'message' => $wpdb->last_error ] );
+        }
+        wp_send_json_success( [ 'id' => $id ] );
+    }
+
+    public function ajax_holiday_delete_rule() {
+        check_ajax_referer( 'dr_holiday_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( -1 );
+        global $wpdb;
+        $id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+        $wpdb->delete( $wpdb->prefix . 'dr_holiday_rules', [ 'id' => $id ] );
+        wp_send_json_success();
+    }
+
+    public function ajax_holiday_toggle_rule() {
+        check_ajax_referer( 'dr_holiday_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( -1 );
+        global $wpdb;
+        $id        = isset( $_POST['id'] )        ? (int) $_POST['id']        : 0;
+        $is_active = isset( $_POST['is_active'] ) ? (int) $_POST['is_active'] : 0;
+        $wpdb->update( $wpdb->prefix . 'dr_holiday_rules', [ 'is_active' => $is_active ], [ 'id' => $id ] );
+        wp_send_json_success();
+    }
+
+    /* ===============================================================
+     * 休日マスタ設定画面
+     * ============================================================= */
+    public function render_holiday_page() {
+        global $wpdb;
+
+        // 所属マスタ取得（employee-manager 公開API or 直接取得）
+        if ( function_exists( 'emp_get_affiliations' ) ) {
+            $affiliations = emp_get_affiliations();
+        } else {
+            $affiliations = $wpdb->get_results(
+                "SELECT id, name FROM `{$wpdb->prefix}mst_affiliation` WHERE is_active = 1 ORDER BY sort_order ASC, id ASC"
+            );
+        }
+
+        $rules      = $this->get_holiday_rules();
+        $dow_labels = [ '日', '月', '火', '水', '木', '金', '土' ];
+
+        include DR_PLUGIN_DIR . 'templates/holiday-page.php';
     }
 
     /* ===============================================================

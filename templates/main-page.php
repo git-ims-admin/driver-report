@@ -81,6 +81,21 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                 </tbody>
             </table>
 
+            <!-- 警告バッジ -->
+            <?php
+            $alerts = $monthly_rows[0]['_alerts'] ?? [];
+            if ( ! empty( $alerts ) ) :
+            ?>
+            <div class="dr-alerts">
+                <?php foreach ( $alerts as $alert ) : ?>
+                <div class="dr-alert <?php echo $alert['type'] === 'error' ? 'dr-alert-error' : 'dr-alert-warn'; ?>">
+                    <span class="dashicons <?php echo $alert['type'] === 'error' ? 'dashicons-warning' : 'dashicons-info'; ?>"></span>
+                    <?php echo esc_html( $alert['message'] ); ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+ 
             <!-- 日別一覧テーブル -->
             <div class="dr-table-wrap">
                 <table class="dr-main-table">
@@ -102,21 +117,26 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                     </thead>
                     <tbody>
                     <?php foreach ( $monthly_rows as $row ) :
-                        $row_class = '';
-                        if ( $row['is_sun'] )      $row_class = 'dr-row-sun';
-                        elseif ( $row['is_sat'] )  $row_class = 'dr-row-sat';
+                        $row_class  = '';
+                        $kintai_val = $row['default_kintai'];
+                        if ( $row['is_sun'] )         $row_class = 'dr-row-sun';
+                        elseif ( $row['is_sat'] )     $row_class = 'dr-row-sat';
                         elseif ( ! $row['has_data'] ) $row_class = 'dr-row-off';
                     ?>
-                        <tr class="<?php echo $row_class; ?>">
+                        <tr class="<?php echo $row_class; ?>" data-auto="true">
                             <td class="col-date">
                                 <?php echo esc_html( substr( $row['date'], 5 ) ); ?>
                                 <span class="dr-dow"><?php echo esc_html( $row['dow'] ); ?></span>
+                                <?php if ( ! empty( $row['furikae_label'] ) ) : ?>
+                                <span class="dr-furikae-label"><?php echo esc_html( $row['furikae_label'] ); ?></span>
+                                <?php endif; ?>
                             </td>
                             <td class="col-kintai">
                                 <select class="dr-kintai-select" name="kintai[<?php echo esc_attr( $row['date'] ); ?>]">
+                                    <option value="" <?php selected( $kintai_val, '' ); ?>>― 選択 ―</option>
                                     <?php foreach ( $kintai_types as $type ) : ?>
                                         <option value="<?php echo esc_attr( $type ); ?>"
-                                            <?php selected( $row['default_kintai'], $type ); ?>>
+                                            <?php selected( $kintai_val, $type ); ?>>
                                             <?php echo esc_html( $type ); ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -134,16 +154,14 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                                 <?php echo esc_html( Tanpopo_DriverReport::format_min( $row['overtime_min'] ) ); ?>
                             </td>
                             <td class="col-min dr-furikae-cell"
-                                data-labor="<?php echo esc_attr( Tanpopo_DriverReport::format_min( $row['labor_min'] ) ); ?>"
-                                data-default-kintai="<?php echo esc_attr( $row['default_kintai'] ); ?>">
-                                <?php echo $row['default_kintai'] === '振替出勤' ? esc_html( Tanpopo_DriverReport::format_min( $row['labor_min'] ) ) : ''; ?>
+                                data-labor="<?php echo esc_attr( Tanpopo_DriverReport::format_min( $row['labor_min'] ) ); ?>">
+                                <?php echo in_array( $kintai_val, [ '法定振替休', '所定振替休' ], true ) ? esc_html( Tanpopo_DriverReport::format_min( $row['labor_min'] ) ) : ''; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
             </div><!-- /.dr-table-wrap 日別 -->
-
             <!-- 週次サマリーテーブル -->
             <?php if ( $weekly ) : ?>
             <div class="dr-table-wrap dr-weekly-wrap">

@@ -4,9 +4,13 @@
 (function ($) {
     'use strict';
 
+    /* ================================================================
+       集計表示ページ
+       ================================================================ */
+
     /* ---- 集計ボタンの活性制御 ---- */
     function updateBtnState() {
-        var crew  = $('#dr-select-crew').val();
+        var crew = $('#dr-select-crew').val();
         var month = $('#dr-select-month').val();
         $('#dr-btn-open').prop('disabled', !crew || !month);
     }
@@ -15,17 +19,163 @@
     $('#dr-select-month').on('change input', updateBtnState);
     updateBtnState();
 
-    /* ---- 勤怠種別変更 → 振替時間セルの表示切替 ---- */
+    /* ---- 勤怠種別変更 → 振替時間セル表示切替 + data-auto フラグ ---- */
     $(document).on('change', '.dr-kintai-select', function () {
-        var $sel  = $(this);
-        var $cell = $sel.closest('tr').find('.dr-furikae-cell');
+        var $sel = $(this);
+        var $row = $sel.closest('tr');
+        var $cell = $row.find('.dr-furikae-cell');
+        var val = $sel.val();
         var labor = $cell.data('labor');
 
-        if ( $sel.val() === '振替出勤' ) {
-            $cell.text( labor );
+        // 振替時間セルの表示切替
+        if (val === '法定振替休' || val === '所定振替休') {
+            $cell.text(labor);
         } else {
             $cell.text('');
         }
+
+        // 手動変更フラグを立てる
+        $row.attr('data-auto', 'false');
+    });
+
+    /* ================================================================
+       休日マスタ設定ページ
+       ================================================================ */
+
+    var _editingId = 0;
+
+    function hmShowMessage(msg, isError) {
+        var $m = $('#hm-message');
+        $m.text(msg)
+            .css('color', isError ? '#d63638' : '#2c5f2e');
+        setTimeout(function () { $m.text(''); }, 4000);
+    }
+
+    function hmReloadTable() {
+        $.post(drData.ajaxUrl, {
+            action: 'dr_holiday_get_rules',
+            nonce: drData.nonce,
+        }, function (res) {
+            if (!res.success) return;
+            var rules = res.data;
+            var $tbody = $('#hm-rule-tbody');
+            $tbody.empty();
+
+            if (!rules.length) {
+                $tbody.append('<tr><td colspan="5" style="text-align:center;color:#aaa;padding:24px;">登録済みルールはありません</td></tr>');
+                return;
+            }
+
+            var dowLabels = ['日', '月', '火', '水', '木', '金', '土'];
+            $.each(rules, function (i, r) {
+                var weeks = r.week_numbers.split(',').join('・');
+                var activeLabel = r.is_active == 1 ? '有効' : '無効';
+                var activeClass = r.is_active == 1 ? 'hm-active' : 'hm-inactive';
+                var toggleLabel = r.is_active == 1 ? '無効化' : '有効化';
+                var toggleBg = r.is_active == 1 ? '#aaa' : '#2c5f2e';
+                var $tr = $(
+                    '<tr data-id="' + r.id + '">' +
+                    '<td>' + $('<span>').text(r.affiliation_name).html() + '</td>' +
+                    '<td>' + dowLabels[parseInt(r.day_of_week)] + '曜日</td>' +
+                    '<td>第' + weeks + '週</td>' +
+                    '<td><span class="hm-status ' + activeClass + '">' + activeLabel + '</span></td>' +
+                    '<td>' +
+                    '<button class="dr-btn hm-btn-edit" style="height:30px;padding:0 12px;font-size:12px;background:#2e6da4;color:#fff;"' +
+                    ' data-id="' + r.id + '" data-affil="' + r.affiliation_id + '" data-dow="' + r.day_of_week + '" data-weeks="' + r.week_numbers + '">編集</button>' +
+                    '<button class="dr-btn hm-btn-toggle" style="height:30px;padding:0 12px;font-size:12px;background:' + toggleBg + ';color:#fff;margin-left:4px;"' +
+                    ' data-id="' + r.id + '" data-active="' + r.is_active + '">' + toggleLabel + '</button>' +
+                    '<button class="dr-btn hm-btn-delete" style="height:30px;padding:0 12px;font-size:12px;background:#d63638;color:#fff;margin-left:4px;"' +
+                    ' data-id="' + r.id + '">削除</button>' +
+                    '</td>' +
+                    '</tr>'
+                );
+                $tbody.append($tr);
+            });
+        });
+    }
+
+    /* 保存ボタン */
+    $(document).on('click', '#hm-btn-save', function () {
+        var affilId = $('#hm-affiliation').val();
+        var dow = $('#hm-dow').val();
+        var weeks = $('#hm-weeks').val().trim();
+
+        if (!affilId || weeks === '') {
+            hmShowMessage('所属と対象週は必須です', true);
+            return;
+        }
+
+        $.post(drData.ajaxUrl, {
+            action: 'dr_holiday_save_rule',
+            nonce: drData.nonce,
+            id: _editingId,
+            affiliation_id: affilId,
+            day_of_week: dow,
+            week_numbers: weeks,
+        }, function (res) {
+            if (res.success) {
+                hmShowMessage('保存しました', false);
+                hmResetForm();
+                hmReloadTable();
+            } else {
+                hmShowMessage(res.data.message || '保存に失敗しました', true);
+            }
+        });
+    });
+
+    /* キャンセルボタン */
+    $(document).on('click', '#hm-btn-cancel', function () {
+        hmResetForm();
+    });
+
+    function hmResetForm() {
+        _editingId = 0;
+        $('#hm-affiliation').val('');
+        $('#hm-dow').val('0');
+        $('#hm-weeks').val('');
+        $('#hm-btn-cancel').hide();
+        $('#hm-btn-save').text('保存');
+    }
+
+    /* 編集ボタン */
+    $(document).on('click', '.hm-btn-edit', function () {
+        var $btn = $(this);
+        _editingId = parseInt($btn.data('id'));
+        $('#hm-affiliation').val($btn.data('affil'));
+        $('#hm-dow').val($btn.data('dow'));
+        $('#hm-weeks').val($btn.data('weeks'));
+        $('#hm-btn-cancel').show();
+        $('#hm-btn-save').text('更新');
+        $('html, body').animate({ scrollTop: 0 }, 300);
+    });
+
+    /* 有効/無効切替ボタン */
+    $(document).on('click', '.hm-btn-toggle', function () {
+        var $btn = $(this);
+        var id = parseInt($btn.data('id'));
+        var isActive = parseInt($btn.data('active'));
+        var newActive = isActive === 1 ? 0 : 1;
+        $.post(drData.ajaxUrl, {
+            action: 'dr_holiday_toggle_rule',
+            nonce: drData.nonce,
+            id: id,
+            is_active: newActive,
+        }, function (res) {
+            if (res.success) hmReloadTable();
+        });
+    });
+
+    /* 削除ボタン */
+    $(document).on('click', '.hm-btn-delete', function () {
+        if (!window.confirm('このルールを削除しますか？')) return;
+        var id = parseInt($(this).data('id'));
+        $.post(drData.ajaxUrl, {
+            action: 'dr_holiday_delete_rule',
+            nonce: drData.nonce,
+            id: id,
+        }, function (res) {
+            if (res.success) hmReloadTable();
+        });
     });
 
 })(jQuery);
