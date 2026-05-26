@@ -2,7 +2,7 @@
 /**
  * Plugin Name: 勤怠管理 | 長距離ドライバー
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
- * Version:     1.1.3
+ * Version:     1.1.4
  * Author:      有限会社たんぽぽ運送
  */
 

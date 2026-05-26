@@ -160,6 +160,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <th class="wcol-min">積卸時間</th>
                             <th class="wcol-min">休憩時間</th>
                             <th class="wcol-min">日残業</th>
+                            <th class="wcol-min">深夜時間</th>
                             <th class="wcol-min">週残業</th>
                             <th class="wcol-min">確定残業</th>
                         </tr>
@@ -180,6 +181,9 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <td class="wcol-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $w['break_min'] ) ); ?></td>
                             <td class="wcol-min <?php echo ( (int)$w['day_overtime_min'] > 0 ) ? 'dr-cell-over' : ''; ?>">
                                 <?php echo esc_html( Tanpopo_DriverReport::format_min( $w['day_overtime_min'] ) ); ?>
+                            </td>
+                            <td class="wcol-min">
+                                <?php echo esc_html( Tanpopo_DriverReport::format_min( $w['midnight_min'] ) ); ?>
                             </td>
                             <td class="wcol-min <?php echo ( (int)$w['week_overtime_min'] > 0 ) ? 'dr-cell-over' : ''; ?>">
                                 <?php if ( $w['is_carryover'] ) : ?>
@@ -210,6 +214,9 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <td class="wcol-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $weekly['total']['break_min'] ) ); ?></td>
                             <td class="wcol-min <?php echo ( (int)$weekly['total']['day_overtime_min'] > 0 ) ? 'dr-cell-over' : ''; ?>">
                                 <?php echo esc_html( Tanpopo_DriverReport::format_min( $weekly['total']['day_overtime_min'] ) ); ?>
+                            </td>
+                            <td class="wcol-min">
+                                <?php echo esc_html( Tanpopo_DriverReport::format_min( $weekly['total']['midnight_min'] ) ); ?>
                             </td>
                             <td class="wcol-min <?php echo ( (int)$weekly['total']['week_overtime_min'] > 0 ) ? 'dr-cell-over' : ''; ?>">
                                 <?php echo esc_html( Tanpopo_DriverReport::format_min( $weekly['total']['week_overtime_min'] ) ); ?>
