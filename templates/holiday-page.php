@@ -41,11 +41,11 @@
                     <small style="color:#666;font-size:11px;">第何週かをカンマ区切りで入力（例：第2・第4週なら 2,4）</small>
                 </div>
                 <div class="dr-form-group dr-form-group--btn">
-                    <button id="hm-btn-save" class="dr-btn dr-btn-primary">
+                    <button type="button" id="hm-btn-save" class="dr-btn dr-btn-primary">
                         <span class="dashicons dashicons-saved"></span>
                         保存
                     </button>
-                    <button id="hm-btn-cancel" class="dr-btn" style="display:none;background:#aaa;color:#fff;margin-left:8px;">
+                    <button type="button" id="hm-btn-cancel" class="dr-btn" style="display:none;background:#aaa;color:#fff;margin-left:8px;">
                         キャンセル
                     </button>
                 </div>
@@ -87,19 +87,19 @@
                                 </span>
                             </td>
                             <td>
-                                <button class="dr-btn hm-btn-edit" style="height:30px;padding:0 12px;font-size:12px;background:#2e6da4;color:#fff;"
+                                <button type="button" class="dr-btn hm-btn-edit" style="height:30px;padding:0 12px;font-size:12px;background:#2e6da4;color:#fff;"
                                     data-id="<?php echo (int)$rule['id']; ?>"
                                     data-affil="<?php echo (int)$rule['affiliation_id']; ?>"
                                     data-dow="<?php echo (int)$rule['day_of_week']; ?>"
                                     data-weeks="<?php echo esc_attr( $rule['week_numbers'] ); ?>">
                                     編集
                                 </button>
-                                <button class="dr-btn hm-btn-toggle" style="height:30px;padding:0 12px;font-size:12px;background:<?php echo $rule['is_active'] ? '#aaa' : '#2c5f2e'; ?>;color:#fff;margin-left:4px;"
+                                <button type="button" class="dr-btn hm-btn-toggle" style="height:30px;padding:0 12px;font-size:12px;background:<?php echo $rule['is_active'] ? '#aaa' : '#2c5f2e'; ?>;color:#fff;margin-left:4px;"
                                     data-id="<?php echo (int)$rule['id']; ?>"
                                     data-active="<?php echo (int)$rule['is_active']; ?>">
                                     <?php echo $rule['is_active'] ? '無効化' : '有効化'; ?>
                                 </button>
-                                <button class="dr-btn hm-btn-delete" style="height:30px;padding:0 12px;font-size:12px;background:#d63638;color:#fff;margin-left:4px;"
+                                <button type="button" class="dr-btn hm-btn-delete" style="height:30px;padding:0 12px;font-size:12px;background:#d63638;color:#fff;margin-left:4px;"
                                     data-id="<?php echo (int)$rule['id']; ?>">
                                     削除
                                 </button>

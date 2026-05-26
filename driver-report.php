@@ -431,10 +431,12 @@ class Tanpopo_DriverReport {
      * パス2：自動勤怠種別割当
      *
      * 処理順：
-     * 1. 法定休日（日曜）が4日を超えた分は '' に戻す
+     * 1. 法定休日（日曜）は日数上限なしで自動割当（4〜5日が正常範囲）
      * 2. 所定休日が2日を超えた分は '' に戻す
      * 3. 出勤した日曜 → 法定振替休を後続の空き日に割当
      * 4. 出勤した所定休日 → 所定振替休を後続の空き日に割当
+     * 5. 法定カウント（法定休 + 法定振替休）が 4〜5 の範囲外なら警告
+     * 6. 所定休が 2 を超えたら警告
      */
     private function apply_auto_kintai( $rows ) {
 
@@ -444,15 +446,8 @@ class Tanpopo_DriverReport {
             $date_index[ $r['date'] ] = $i;
         }
 
-        // ① 法定休 4日超チェック
-        $houtei_count = 0;
-        foreach ( $rows as &$r ) {
-            if ( $r['default_kintai'] === '法定休' ) {
-                $houtei_count++;
-                if ( $houtei_count > 4 ) $r['default_kintai'] = '';
-            }
-        }
-        unset( $r );
+        // ① 法定休は上限なし（日曜+データなし → 全て法定休のまま）
+        // ※ 最終的に 法定休 + 法定振替休 の合計で 4〜5 を検証する
 
         // ② 所定休 2日超チェック
         $shitei_count = 0;
@@ -509,19 +504,30 @@ class Tanpopo_DriverReport {
             }
         }
 
-        // ⑤ 法定休・所定休の超過警告
-        $final_houtei = 0;
-        $final_shitei = 0;
+        // ⑤ 法定カウント検証（法定休 + 法定振替休 の合計が 4〜5 の範囲外なら警告）
+        $final_houtei      = 0;
+        $final_houtei_furi = 0;
+        $final_shitei      = 0;
         foreach ( $rows as $r ) {
-            if ( $r['default_kintai'] === '法定休' ) $final_houtei++;
-            if ( $r['default_kintai'] === '所定休' ) $final_shitei++;
+            if ( $r['default_kintai'] === '法定休' )     $final_houtei++;
+            if ( $r['default_kintai'] === '法定振替休' ) $final_houtei_furi++;
+            if ( $r['default_kintai'] === '所定休' )     $final_shitei++;
         }
-        if ( $final_houtei > 4 ) {
+        $houtei_total = $final_houtei + $final_houtei_furi;
+
+        if ( $houtei_total < 4 || $houtei_total > 5 ) {
             array_unshift( $furikae_warnings, [
                 'type'    => 'warn',
-                'message' => '法定休が4日を超えています。法定休以外の日数を確認し休日の内容を変更してください',
+                'message' => sprintf(
+                    '法定休の合計（法定休%d日＋法定振替休%d日＝%d日）が正常範囲（4〜5日）を外れています。休日の内容を確認してください',
+                    $final_houtei,
+                    $final_houtei_furi,
+                    $houtei_total
+                ),
             ] );
         }
+
+        // ⑥ 所定休超過警告
         if ( $final_shitei > 2 ) {
             array_unshift( $furikae_warnings, [
                 'type'    => 'warn',
