@@ -15,4 +15,3 @@ jobs:
           username: ${{ secrets.FTP_USER_SHIROTO }}
           password: ${{ secrets.FTP_PASS_SHIROTO }}
           server-dir: /labs-ims.com/public_html/shiroto-test/tanpop/wp-content/plugins/driver-report/
-          dangerous-clean-slate: false
