@@ -336,7 +336,7 @@ class Tanpopo_DriverReport {
             $carry_start    = date( 'Y-m-d', strtotime( $prev_month_end . ' -' . ( $carry_days - 1 ) . ' days' ) );
 
             $weeks[] = [
-                'label'              => '（前月繰越）',
+                'label'              => '（前月繰越残業）',
                 'is_prev_carry'      => true,
                 'is_carryover'       => false,
                 'disp_start'         => date( 'Y/m/d', strtotime( $carry_start    ) ),
