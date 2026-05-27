@@ -8,7 +8,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.8' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION', '1.1.9' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -16,7 +16,7 @@ if ( ! class_exists( 'Tanpopo_DriverReport' ) ) :
 
 class Tanpopo_DriverReport {
 
-    const KINTAI_TYPES = [ '出勤', '法定休', '法定振替休', '所定休', '所定振替休', '有給', '欠勤', '緊急出動' ];
+    const KINTAI_TYPES = [ '出勤', '法定休', '法定振替休', '所定休', '所定振替休', '有給', '有給（未承認）', '欠勤', '緊急出動' ];
 
     public function __construct() {
         add_action( 'admin_menu',            [ $this, 'add_menu' ] );
