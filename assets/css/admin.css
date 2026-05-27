@@ -241,10 +241,15 @@
 .dr-main-table thead tr {
     background: #1e3a5f;
     color: #fff;
+}
+
+.dr-main-table thead th {
     position: sticky;
     top: 0;
     z-index: 10;
+    background: #1e3a5f;
 }
+
 
 .dr-main-table th {
     padding: 9px 10px;
