@@ -8,7 +8,7 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION', '1.1.9' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.8' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -16,7 +16,7 @@ if ( ! class_exists( 'Tanpopo_DriverReport' ) ) :
 
 class Tanpopo_DriverReport {
 
-    const KINTAI_TYPES = [ '出勤', '法定休', '法定振替休', '所定休', '所定振替休', '有給', '有給（未承認）', '欠勤', '緊急出動' ];
+    const KINTAI_TYPES = [ '出勤', '法定休', '法定振替休', '所定休', '所定振替休', '有給', '欠勤', '緊急出動' ];
 
     public function __construct() {
         add_action( 'admin_menu',            [ $this, 'add_menu' ] );
@@ -366,11 +366,27 @@ class Tanpopo_DriverReport {
             if ( $t ) $start_time = trim( $t['g1_time'] ?? '' );
             if ( $start_time === '' && $k ) $start_time = substr( $k['start_time'] ?? '', 0, 5 );
 
-            $end_time = '';
-            if ( $t ) $end_time = self::get_last_g_time( $t );
-            if ( $end_time === '' && $k ) $end_time = substr( $k['end_time'] ?? '', 0, 5 );
+            $end_time_raw = '';
+            if ( $t ) $end_time_raw = self::get_last_g_time( $t );
+            if ( $end_time_raw === '' && $k ) $end_time_raw = substr( $k['end_time'] ?? '', 0, 5 );
 
-            $kousoku_min = $k ? (int)( $k['kousoku_total_min'] ?? 0 ) : null;
+            // 終業時刻が始業時刻以下の場合は翌日扱いとして 25時表記に変換
+            $end_time = $end_time_raw;
+            if ( $start_time !== '' && $end_time_raw !== '' ) {
+                list( $sh, $sm ) = array_map( 'intval', explode( ':', $start_time ) );
+                list( $eh, $em ) = array_map( 'intval', explode( ':', $end_time_raw ) );
+                $start_total = $sh * 60 + $sm;
+                $end_total   = $eh * 60 + $em;
+                if ( $end_total <= $start_total ) {
+                    // 翌日扱い：時に24を加算して表示
+                    $end_time = ( $eh + 24 ) . ':' . str_pad( $em, 2, '0', STR_PAD_LEFT );
+                    $end_total += 1440; // 分換算も補正
+                }
+                // 拘束時間を始業・終業から計算
+                $kousoku_min = $end_total - $start_total;
+            } else {
+                $kousoku_min = null;
+            }
 
             $drive_min = null;
             $cargo_min = null;
