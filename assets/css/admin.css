@@ -376,6 +376,7 @@
    ============================================================= */
 .dr-weekly-wrap {
     margin-top: 28px;
+    height: auto;
 }
 
 .dr-weekly-table {
