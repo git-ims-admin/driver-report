@@ -186,14 +186,37 @@ class DR_DB {
             $employee_code, $start, $end
         ) );
 
-        // 現在の有給残日数（失効していない付与分の合計）
-        $today     = date( 'Y-m-d' );
-        $remaining = (float) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COALESCE( SUM(remaining_days), 0 )
-             FROM `{$tbl_grant}`
-             WHERE employee_code = %s AND expiry_date >= %s",
-            $employee_code, $today
+        // 修正後
+        // ① 月末時点で有効な付与ID一覧
+        //    （grant_date <= 月末 かつ expiry_date >= 月末 ＝ まだ失効していない）
+        $valid_ids = $wpdb->get_col( $wpdb->prepare(
+            "SELECT id FROM `{$tbl_grant}`
+            WHERE employee_code = %s
+            AND grant_date  <= %s
+            AND expiry_date >= %s",
+            $employee_code, $month_end, $month_end
         ) );
+
+        if ( empty( $valid_ids ) ) {
+            return [ 'consumed' => $consumed, 'remaining' => 0, 'has_data' => true ];
+        }
+
+        $ids_in = implode( ',', array_map( 'intval', $valid_ids ) );
+
+        // ② 有効付与の付与日数合計
+        $total_granted = (float) $wpdb->get_var(
+            "SELECT COALESCE( SUM(granted_days), 0 ) FROM `{$tbl_grant}` WHERE id IN ({$ids_in})"
+        );
+
+        // ③ 月末までの消化日数合計（有効付与分のみ）
+        $consumed_to_month_end = (float) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COALESCE( SUM(consumed_days), 0 )
+            FROM `{$tbl_cons}`
+            WHERE grant_id IN ({$ids_in}) AND consumed_date <= %s",
+            $month_end
+        ) );
+
+        $remaining = max( 0, $total_granted - $consumed_to_month_end );
 
         return [ 'consumed' => $consumed, 'remaining' => $remaining, 'has_data' => true ];
     }
