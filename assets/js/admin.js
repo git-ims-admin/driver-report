@@ -55,31 +55,20 @@
 
     /* ---- 勤怠種別変更 → 振替時間セル表示切替 + data-auto フラグ ---- */
     $(document).on('change', '.dr-kintai-select', function () {
-        var $sel = $(this);
-        var $row = $sel.closest('tr');
-        var $cell = $row.find('.dr-furikae-cell');
-        var val = $sel.val();
-        var labor = $cell.data('labor');
-
-        // 振替時間セルの表示切替
-        if (val === '法定振替休' || val === '所定振替休') {
-            $cell.text(labor);
-        } else {
-            $cell.text('');
-        }
-
-        // 手動変更フラグを立てる
-        $row.attr('data-auto', 'false');
+        $(this).closest('tr').attr('data-auto', 'false');
     });
+    /* ---- 保存（更新）ボタン ---- */
+    function parseMin(str) {
+        if (!str || str.trim() === '') return 0;
+        var parts = str.trim().split(':');
+        var h = parseInt(parts[0], 10) || 0;
+        var m = parseInt(parts[1], 10) || 0;
+        return h * 60 + m;
+    }
 
     /* ---- 保存（更新）ボタン ---- */
     $(document).on('click', '#dr-btn-save', function () {
-        var $btn = $(this);
-        var crewCode = $btn.data('crew');
-        var month = $btn.data('month');
-        var $msg = $('#dr-save-message');
-
-        // 全行の勤怠データを収集
+        // ...
         var rows = [];
         $('tbody tr[data-date]').each(function () {
             var $tr = $(this);
@@ -88,6 +77,8 @@
                 kintai_type: $tr.find('.dr-kintai-select').val() || '',
                 furikae_label: $tr.data('furikae') || '',
                 is_manual: $tr.attr('data-auto') === 'false' ? 1 : 0,
+                hayatai_min: parseMin($tr.find('.dr-hayatai-input').val()),
+                note: $tr.find('.dr-note-input').val() || '',
             });
         });
 

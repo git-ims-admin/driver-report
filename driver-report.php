@@ -89,8 +89,10 @@ class Tanpopo_DriverReport {
             `work_date`      DATE         NOT NULL,
             `kintai_type`    VARCHAR(20)  NOT NULL DEFAULT '',
             `furikae_label`  VARCHAR(30)  NOT NULL DEFAULT '',
-            `is_manual`      TINYINT(1)   NOT NULL DEFAULT 0,
-            `updated_at`     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            `is_manual`      TINYINT(1)    NOT NULL DEFAULT 0,
+            `hayatai_min`    INT           NOT NULL DEFAULT 0 COMMENT '早退/遅刻時間（分）',
+            `note`           VARCHAR(100)  NOT NULL DEFAULT '' COMMENT '備考',
+            `updated_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY (`id`),
             UNIQUE KEY `uq_crew_date` (`crew_code`(20), `work_date`)
         ) {$charset};" );
@@ -122,6 +124,15 @@ class Tanpopo_DriverReport {
         $table3 = $wpdb->prefix . 'dr_kintai_log';
         if ( ! $wpdb->get_var( "SHOW TABLES LIKE '{$table3}'" ) ) {
             $this->activate();
+        } else {
+            // 既存テーブルへのカラム追加
+            $cols3 = $wpdb->get_col( "DESCRIBE `{$table3}`", 0 );
+            if ( ! in_array( 'hayatai_min', $cols3, true ) ) {
+                $wpdb->query( "ALTER TABLE `{$table3}` ADD COLUMN `hayatai_min` INT NOT NULL DEFAULT 0 COMMENT '早退/遅刻時間（分）' AFTER `is_manual`" );
+            }
+            if ( ! in_array( 'note', $cols3, true ) ) {
+                $wpdb->query( "ALTER TABLE `{$table3}` ADD COLUMN `note` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '備考' AFTER `hayatai_min`" );
+            }
         }
     }
 

@@ -171,6 +171,8 @@ class DR_Compute {
                 'default_kintai'    => $default_kintai,
                 'furikae_label'     => '',
                 'is_manual'         => false,
+                'hayatai_min'       => 0,
+                'note'              => '',
                 'start_time'        => $start_time,
                 'end_time'          => $end_time,
                 'kousoku_min'       => $kousoku_min,
@@ -193,6 +195,8 @@ class DR_Compute {
                     $r['default_kintai'] = $saved['kintai_type'];
                     $r['furikae_label']  = $saved['furikae_label'];
                     $r['is_manual']      = (bool) $saved['is_manual'];
+                    $r['hayatai_min']    = (int) ( $saved['hayatai_min'] ?? 0 );
+                    $r['note']           = $saved['note'] ?? '';
                 }
             }
             unset( $r );
@@ -553,19 +557,17 @@ class DR_Compute {
      * 月間サマリ生成
      * ------------------------------------------------------------- */
     public static function get_monthly_summary( $monthly_rows, $weekly, $crew_code, $year_month ) {
-        $attendance   = 0;  // 出勤 + 緊急出動
-        $absent       = 0;  // 欠勤
-        $holiday_work = 0;  // 休日出勤（振替取得不可の日曜出勤）
-        $furikae_min  = 0;  // 振替時間カラム合計（法定振替休・所定振替休 の labor_min）
+        $attendance   = 0;
+        $absent       = 0;
+        $holiday_work = 0;
+        $hayatai_min  = 0;  // 早退/遅刻時間の合計（各行の hayatai_min）
 
         foreach ( $monthly_rows as $r ) {
             $kt = $r['default_kintai'] ?? '';
             if ( in_array( $kt, [ '出勤', '緊急出動' ], true ) ) $attendance++;
             if ( $kt === '欠勤' ) $absent++;
             if ( $r['kyuujitsu_kinmu'] ?? false ) $holiday_work++;
-            if ( in_array( $kt, [ '法定振替休', '所定振替休' ], true ) && $r['labor_min'] !== null ) {
-                $furikae_min += (int) $r['labor_min'];
-            }
+            $hayatai_min += (int) ( $r['hayatai_min'] ?? 0 );
         }
 
         $paidleave = DR_DB::get_paidleave_summary( $crew_code, $year_month );
@@ -577,8 +579,8 @@ class DR_Compute {
             'paid_consumed'  => $paidleave['consumed'],
             'paid_remaining' => $paidleave['remaining'],
             'paid_has_data'  => $paidleave['has_data'],
-            'labor_min'      => $weekly ? $weekly['total']['labor_min']      : null,
-            'furikae_min'    => $furikae_min,
+            'labor_min'      => $weekly ? $weekly['total']['labor_min']          : null,
+            'hayatai_min'    => $hayatai_min,
             'overtime_min'   => $weekly ? $weekly['total']['confirmed_overtime'] : null,
         ];
     }

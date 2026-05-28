@@ -648,6 +648,7 @@ tr[data-auto="false"] .dr-kintai-select {
     cursor: not-allowed;
     opacity: .75;
 }
+
 /* ===============================================================
    月間サマリ
    ============================================================= */
@@ -732,4 +733,42 @@ tr[data-auto="false"] .dr-kintai-select {
 
 .dr-ms-furikae {
     color: #2c5f2e;
+}
+
+/* 早退/遅刻 input */
+.dr-hayatai-input {
+    width: 58px;
+    text-align: center;
+    font-size: 12px;
+    padding: 3px 4px;
+    border: 1px solid #c3cdd8;
+    border-radius: 4px;
+    background: #fff;
+}
+
+.dr-hayatai-input:focus {
+    outline: none;
+    border-color: #c17b00;
+    box-shadow: 0 0 0 2px rgba(193, 123, 0, .15);
+}
+
+/* 備考 input */
+.col-note {
+    min-width: 120px;
+}
+
+.dr-note-input {
+    width: 100%;
+    font-size: 12px;
+    padding: 3px 6px;
+    border: 1px solid #c3cdd8;
+    border-radius: 4px;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.dr-note-input:focus {
+    outline: none;
+    border-color: #2e6da4;
+    box-shadow: 0 0 0 2px rgba(46, 109, 164, .15);
 }
