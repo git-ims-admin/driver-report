@@ -24,11 +24,9 @@
         var $chip = $(this);
         var affil = $chip.data('affil');
 
-        // アクティブチップ切替
         $('.dr-chip').removeClass('dr-chip-active');
         $chip.addClass('dr-chip-active');
 
-        // option の表示切替
         var $select = $('#dr-select-crew');
         var $options = $select.find('option[data-affil]');
 
@@ -44,7 +42,6 @@
             });
         }
 
-        // フィルター後に選択中の値が非表示になったらリセット
         var $selected = $select.find('option:selected');
         if ($selected.val() !== '' && $selected.is(':hidden')) {
             $select.val('');
@@ -53,11 +50,12 @@
         updateBtnState();
     });
 
-    /* ---- 勤怠種別変更 → 振替時間セル表示切替 + data-auto フラグ ---- */
+    /* ---- 勤怠種別変更 → data-auto フラグ ---- */
     $(document).on('change', '.dr-kintai-select', function () {
         $(this).closest('tr').attr('data-auto', 'false');
     });
-    /* ---- 保存（更新）ボタン ---- */
+
+    /* ---- H:MM 文字列 → 分（整数）変換 ---- */
     function parseMin(str) {
         if (!str || str.trim() === '') return 0;
         var parts = str.trim().split(':');
@@ -68,7 +66,12 @@
 
     /* ---- 保存（更新）ボタン ---- */
     $(document).on('click', '#dr-btn-save', function () {
-        // ...
+        var $btn = $(this);
+        var crewCode = $btn.data('crew');
+        var month = $btn.data('month');
+        var $msg = $('#dr-save-message');
+
+        // 全行の勤怠データを収集
         var rows = [];
         $('tbody tr[data-date]').each(function () {
             var $tr = $(this);
@@ -118,8 +121,7 @@
 
     function hmShowMessage(msg, isError) {
         var $m = $('#hm-message');
-        $m.text(msg)
-            .css('color', isError ? '#d63638' : '#2c5f2e');
+        $m.text(msg).css('color', isError ? '#d63638' : '#2c5f2e');
         setTimeout(function () { $m.text(''); }, 4000);
     }
 
