@@ -194,7 +194,7 @@ class DR_DB {
             WHERE employee_code = %s
             AND grant_date  <= %s
             AND expiry_date >= %s",
-            $employee_code, $month_end, $month_end
+            $employee_code, $end, $end   // ← $end（月末日）
         ) );
 
         if ( empty( $valid_ids ) ) {
@@ -213,9 +213,8 @@ class DR_DB {
             "SELECT COALESCE( SUM(consumed_days), 0 )
             FROM `{$tbl_cons}`
             WHERE grant_id IN ({$ids_in}) AND consumed_date <= %s",
-            $month_end
+            $end   // ← $end（月末日）
         ) );
-
         $remaining = max( 0, $total_granted - $consumed_to_month_end );
 
         return [ 'consumed' => $consumed, 'remaining' => $remaining, 'has_data' => true ];
