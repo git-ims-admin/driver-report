@@ -2,13 +2,13 @@
 /**
  * Plugin Name: 勤怠管理 | 長距離ドライバー
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
- * Version:     1.1.8
+ * Version:     1.2.0
  * Author:      有限会社たんぽぽ運送
  */
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.1.8' );
+if ( ! defined( 'DR_VERSION' ) )    define( 'DR_VERSION',    '1.2.0' );
 if ( ! defined( 'DR_PLUGIN_DIR' ) ) define( 'DR_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 if ( ! defined( 'DR_PLUGIN_URL' ) ) define( 'DR_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -366,11 +366,27 @@ class Tanpopo_DriverReport {
             if ( $t ) $start_time = trim( $t['g1_time'] ?? '' );
             if ( $start_time === '' && $k ) $start_time = substr( $k['start_time'] ?? '', 0, 5 );
 
-            $end_time = '';
-            if ( $t ) $end_time = self::get_last_g_time( $t );
-            if ( $end_time === '' && $k ) $end_time = substr( $k['end_time'] ?? '', 0, 5 );
+            $end_time_raw = '';
+            if ( $t ) $end_time_raw = self::get_last_g_time( $t );
+            if ( $end_time_raw === '' && $k ) $end_time_raw = substr( $k['end_time'] ?? '', 0, 5 );
 
-            $kousoku_min = $k ? (int)( $k['kousoku_total_min'] ?? 0 ) : null;
+            // 終業時刻が始業時刻以下の場合は翌日扱いとして 25時表記に変換
+            $end_time = $end_time_raw;
+            if ( $start_time !== '' && $end_time_raw !== '' ) {
+                list( $sh, $sm ) = array_map( 'intval', explode( ':', $start_time ) );
+                list( $eh, $em ) = array_map( 'intval', explode( ':', $end_time_raw ) );
+                $start_total = $sh * 60 + $sm;
+                $end_total   = $eh * 60 + $em;
+                if ( $end_total <= $start_total ) {
+                    // 翌日扱い：時に24を加算して表示
+                    $end_time = ( $eh + 24 ) . ':' . str_pad( $em, 2, '0', STR_PAD_LEFT );
+                    $end_total += 1440; // 分換算も補正
+                }
+                // 拘束時間を始業・終業から計算
+                $kousoku_min = $end_total - $start_total;
+            } else {
+                $kousoku_min = null;
+            }
 
             $drive_min = null;
             $cargo_min = null;
@@ -454,6 +470,29 @@ class Tanpopo_DriverReport {
         } else {
             $rows = $this->apply_auto_kintai( $rows );
         }
+
+        // ---- パス3：休日勤務フラグ判定 ----
+        // 日曜出勤で法定振替休が取れなかった行に kyuujitsu_kinmu = true を付与。
+        // 自動判定・DB保存済みデータの両パスで共通動作する。
+        // 判定方法：法定振替休行の furikae_label（"mm/dd(日)の振替"形式）を収集し、
+        //           対応するラベルを持たない日曜出勤行を休日勤務とみなす。
+        $furikae_covered = [];
+        foreach ( $rows as $r ) {
+            if ( $r['default_kintai'] === '法定振替休' && ! empty( $r['furikae_label'] ) ) {
+                $furikae_covered[] = $r['furikae_label'];
+            }
+        }
+        foreach ( $rows as &$r ) {
+            $r['kyuujitsu_kinmu'] = false;
+            if ( $r['is_sun'] && $r['default_kintai'] === '出勤' ) {
+                // 対応する法定振替休ラベル例: "04/26(日)の振替"
+                $expected = date( 'm/d', strtotime( $r['date'] ) ) . '(日)の振替';
+                if ( ! in_array( $expected, $furikae_covered, true ) ) {
+                    $r['kyuujitsu_kinmu'] = true;
+                }
+            }
+        }
+        unset( $r );
 
         return $rows;
     }
@@ -747,7 +786,10 @@ class Tanpopo_DriverReport {
                         $sum['cargo_min']    += (int)( $r['cargo_min']    ?? 0 );
                         $sum['kousoku_min']  += (int)( $r['kousoku_min']  ?? 0 );
                         $sum['midnight_min'] += (int)( $r['midnight_min'] ?? 0 );
-                        $sum['overtime_min'] += (int)( $r['overtime_min'] ?? 0 );
+                        // 休日勤務（振替取得不可の日曜出勤）は残業計算から除外
+                        if ( ! ( $r['kyuujitsu_kinmu'] ?? false ) ) {
+                            $sum['overtime_min'] += (int)( $r['overtime_min'] ?? 0 );
+                        }
                     }
                     $sum['days']++;
                 }

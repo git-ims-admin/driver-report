@@ -190,8 +190,12 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <td class="col-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $row['cargo_min'] ) ); ?></td>
                             <td class="col-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $row['break_calc_min'] ) ); ?></td>
                             <td class="col-min"><?php echo esc_html( Tanpopo_DriverReport::format_min( $row['midnight_min'] ) ); ?></td>
-                            <td class="col-min <?php echo ( (int)$row['overtime_min'] > 0 ) ? 'dr-cell-over' : ''; ?>">
-                                <?php echo esc_html( Tanpopo_DriverReport::format_min( $row['overtime_min'] ) ); ?>
+                            <td class="col-min <?php echo ( (int)$row['overtime_min'] > 0 && ! $row['kyuujitsu_kinmu'] ) ? 'dr-cell-over' : ''; ?>">
+                                <?php if ( $row['kyuujitsu_kinmu'] ) : ?>
+                                    <span class="dr-badge-kyuujitsu">休日出勤</span>
+                                <?php else : ?>
+                                    <?php echo esc_html( Tanpopo_DriverReport::format_min( $row['overtime_min'] ) ); ?>
+                                <?php endif; ?>
                             </td>
                             <td class="col-min dr-furikae-cell"
                                 data-labor="<?php echo esc_attr( Tanpopo_DriverReport::format_min( $row['labor_min'] ) ); ?>">
@@ -230,7 +234,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             if ( $w['is_carryover'] )   $w_class = 'dr-week-carryover';
                             if ( $w['is_prev_carry'] )  $w_class = 'dr-week-prev-carry';
                         ?>
-                        <t<tr class="<?php echo $w_class; ?>">
+                        <tr class="<?php echo $w_class; ?>">
                             <td class="wcol-label"><?php echo esc_html( $w['label'] ); ?></td>
                             <td class="wcol-date"><?php echo esc_html( $w['disp_start'] ); ?></td>
                             <td class="wcol-date"><?php echo esc_html( $w['disp_end'] ); ?></td>

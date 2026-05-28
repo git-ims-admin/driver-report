@@ -227,6 +227,7 @@
     overflow-x: auto;
     border-radius: 6px;
     border: 1px solid #dde3ea;
+    height: 400px;
 }
 
 /* ---- 勤怠メインテーブル ---- */
@@ -242,6 +243,14 @@
     background: #1e3a5f;
     color: #fff;
 }
+
+.dr-main-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #1e3a5f;
+}
+
 
 .dr-main-table th {
     padding: 9px 10px;
@@ -544,6 +553,19 @@
     width: 18px;
     height: 18px;
     flex-shrink: 0;
+}
+
+/* 休日出勤バッジ（振替取得不可の日曜出勤） */
+.dr-badge-kyuujitsu {
+    display: inline-block;
+    background: #8b4513;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: .03em;
+    white-space: nowrap;
 }
 
 /* 休日超過バッジ（週次テーブル用） */
