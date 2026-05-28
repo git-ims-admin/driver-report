@@ -35,6 +35,8 @@ class Tanpopo_DriverReport {
         add_action( 'wp_ajax_dr_holiday_delete_rule', [ 'DR_Ajax', 'holiday_delete_rule' ] );
         add_action( 'wp_ajax_dr_holiday_toggle_rule', [ 'DR_Ajax', 'holiday_toggle_rule' ] );
         add_action( 'wp_ajax_dr_kintai_save',         [ 'DR_Ajax', 'kintai_save' ] );
+        add_action( 'wp_ajax_dr_kintai_save',          [ 'DR_Ajax', 'kintai_save' ] );
+        add_action( 'wp_ajax_dr_get_monthly_summary',  [ 'DR_Ajax', 'get_monthly_summary' ] );
     }
 
     /* ---------------------------------------------------------------

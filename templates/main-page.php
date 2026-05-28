@@ -350,28 +350,28 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="dr-ms-num"><?php echo (int) $monthly_summary['attendance']; ?><span class="dr-ms-unit">日</span></td>
-                                <td class="dr-ms-num <?php echo $monthly_summary['absent'] > 0 ? 'dr-ms-alert' : ''; ?>"><?php echo (int) $monthly_summary['absent']; ?><span class="dr-ms-unit">日</span></td>
-                                <td class="dr-ms-num <?php echo $monthly_summary['holiday_work'] > 0 ? 'dr-ms-warn' : ''; ?>"><?php echo (int) $monthly_summary['holiday_work']; ?><span class="dr-ms-unit">日</span></td>
-                                <td class="dr-ms-num">
+                                <td class="dr-ms-num" data-ms="attendance"><?php echo (int) $monthly_summary['attendance']; ?><span class="dr-ms-unit">日</span></td>
+                                <td class="dr-ms-num <?php echo $monthly_summary['absent'] > 0 ? 'dr-ms-alert' : ''; ?>" data-ms="absent"><?php echo (int) $monthly_summary['absent']; ?><span class="dr-ms-unit">日</span></td>
+                                <td class="dr-ms-num <?php echo $monthly_summary['holiday_work'] > 0 ? 'dr-ms-warn' : ''; ?>" data-ms="holiday_work"><?php echo (int) $monthly_summary['holiday_work']; ?><span class="dr-ms-unit">日</span></td>
+                                <td class="dr-ms-num" data-ms="paid_consumed">
                                     <?php if ( $monthly_summary['paid_has_data'] ) : ?>
                                         <?php echo number_format( $monthly_summary['paid_consumed'], 1 ); ?><span class="dr-ms-unit">日</span>
                                     <?php else : ?>
                                         <span class="dr-ms-na">―</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="dr-ms-num">
+                                <td class="dr-ms-num" data-ms="paid_remaining">
                                     <?php if ( $monthly_summary['paid_has_data'] ) : ?>
                                         <?php echo number_format( $monthly_summary['paid_remaining'], 1 ); ?><span class="dr-ms-unit">日</span>
                                     <?php else : ?>
                                         <span class="dr-ms-na">―</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="dr-ms-num"><?php echo esc_html( DR_Compute::format_min( $monthly_summary['labor_min'] ) ); ?></td>
-                                <td class="dr-ms-num <?php echo $monthly_summary['hayatai_min'] > 0 ? 'dr-ms-warn' : ''; ?>">
+                                <td class="dr-ms-num" data-ms="labor"><?php echo esc_html( DR_Compute::format_min( $monthly_summary['labor_min'] ) ); ?></td>
+                                <td class="dr-ms-num <?php echo $monthly_summary['hayatai_min'] > 0 ? 'dr-ms-warn' : ''; ?>" data-ms="hayatai">
                                     <?php echo $monthly_summary['hayatai_min'] > 0 ? esc_html( DR_Compute::format_min( $monthly_summary['hayatai_min'] ) ) : '―'; ?>
                                 </td>
-                                <td class="dr-ms-num <?php echo (int)$monthly_summary['overtime_min'] > 0 ? 'dr-ms-over' : ''; ?>"><?php echo esc_html( DR_Compute::format_min( $monthly_summary['overtime_min'] ) ); ?></td>
+                                <td class="dr-ms-num <?php echo (int)$monthly_summary['overtime_min'] > 0 ? 'dr-ms-over' : ''; ?>" data-ms="overtime"><?php echo esc_html( DR_Compute::format_min( $monthly_summary['overtime_min'] ) ); ?></td>
                             </tr>
                         </tbody>
                     </table>

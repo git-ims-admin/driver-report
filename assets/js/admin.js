@@ -98,6 +98,7 @@
                 $msg.text(res.data.saved + '件を保存しました')
                     .css({ color: '#2c5f2e', background: '#f0fff0', borderLeft: '4px solid #2c5f2e', padding: '8px 20px' })
                     .show();
+                drRefreshSummary(crewCode, month);
             } else {
                 $msg.text('保存に失敗しました：' + (res.data.message || ''))
                     .css({ color: '#7a1a1a', background: '#fff0f0', borderLeft: '4px solid #d63638', padding: '8px 20px' })
@@ -251,5 +252,37 @@
             if (res.success) hmReloadTable();
         });
     });
+    function drRefreshSummary(crewCode, yearMonth) {
+        $.post(drData.ajaxUrl, {
+            action: 'dr_get_monthly_summary',
+            nonce: drData.nonce,
+            crew_code: crewCode,
+            year_month: yearMonth,
+        }, function (res) {
+            if (!res.success) return;
+            var s = res.data;
 
+            // 各セルを data-ms 属性で特定して更新
+            $('[data-ms="attendance"]').html(s.attendance + '<span class="dr-ms-unit">日</span>');
+            $('[data-ms="absent"]').html(s.absent + '<span class="dr-ms-unit">日</span>')
+                .toggleClass('dr-ms-alert', s.absent > 0);
+            $('[data-ms="holiday_work"]').html(s.holiday_work + '<span class="dr-ms-unit">日</span>')
+                .toggleClass('dr-ms-warn', s.holiday_work > 0);
+            $('[data-ms="paid_consumed"]').html(
+                s.paid_has_data
+                    ? parseFloat(s.paid_consumed).toFixed(1) + '<span class="dr-ms-unit">日</span>'
+                    : '<span class="dr-ms-na">―</span>'
+            );
+            $('[data-ms="paid_remaining"]').html(
+                s.paid_has_data
+                    ? parseFloat(s.paid_remaining).toFixed(1) + '<span class="dr-ms-unit">日</span>'
+                    : '<span class="dr-ms-na">―</span>'
+            );
+            $('[data-ms="labor"]').html(s.labor_str);
+            $('[data-ms="hayatai"]').html(s.hayatai_str || '―')
+                .toggleClass('dr-ms-warn', s.hayatai_min > 0);
+            $('[data-ms="overtime"]').html(s.overtime_str)
+                .toggleClass('dr-ms-over', s.overtime_min > 0);
+        });
+    }
 })(jQuery);
