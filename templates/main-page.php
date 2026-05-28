@@ -316,6 +316,60 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
             </div><!-- /.dr-weekly-wrap -->
             <?php endif; ?>
 
+            <!-- ============================================================
+                 月間サマリ
+                 ============================================================ -->
+            <?php if ( $monthly_summary !== null ) : ?>
+            <div class="dr-monthly-summary-wrap">
+                <div class="dr-card-header" style="border-radius:6px 6px 0 0;">
+                    <span class="dashicons dashicons-chart-area"></span>
+                    月間サマリ
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="dr-ms-table">
+                        <thead>
+                            <tr>
+                                <th>出勤日数</th>
+                                <th>欠勤日数</th>
+                                <th>休日出勤日数</th>
+                                <th>有給消化日数</th>
+                                <th>有給残日数</th>
+                                <th>労働時間</th>
+                                <th>振替時間</th>
+                                <th>確定残業時間</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="dr-ms-num"><?php echo (int) $monthly_summary['attendance']; ?><span class="dr-ms-unit">日</span></td>
+                                <td class="dr-ms-num <?php echo $monthly_summary['absent'] > 0 ? 'dr-ms-alert' : ''; ?>"><?php echo (int) $monthly_summary['absent']; ?><span class="dr-ms-unit">日</span></td>
+                                <td class="dr-ms-num <?php echo $monthly_summary['holiday_work'] > 0 ? 'dr-ms-warn' : ''; ?>"><?php echo (int) $monthly_summary['holiday_work']; ?><span class="dr-ms-unit">日</span></td>
+                                <td class="dr-ms-num">
+                                    <?php if ( $monthly_summary['paid_has_data'] ) : ?>
+                                        <?php echo number_format( $monthly_summary['paid_consumed'], 1 ); ?><span class="dr-ms-unit">日</span>
+                                    <?php else : ?>
+                                        <span class="dr-ms-na">―</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="dr-ms-num">
+                                    <?php if ( $monthly_summary['paid_has_data'] ) : ?>
+                                        <?php echo number_format( $monthly_summary['paid_remaining'], 1 ); ?><span class="dr-ms-unit">日</span>
+                                    <?php else : ?>
+                                        <span class="dr-ms-na">―</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="dr-ms-num"><?php echo esc_html( DR_Compute::format_min( $monthly_summary['labor_min'] ) ); ?></td>
+                                <td class="dr-ms-num <?php echo $monthly_summary['furikae_min'] > 0 ? 'dr-ms-furikae' : ''; ?>">
+                                    <?php echo $monthly_summary['furikae_min'] > 0 ? esc_html( DR_Compute::format_min( $monthly_summary['furikae_min'] ) ) : '―'; ?>
+                                </td>
+                                <td class="dr-ms-num <?php echo (int)$monthly_summary['overtime_min'] > 0 ? 'dr-ms-over' : ''; ?>"><?php echo esc_html( DR_Compute::format_min( $monthly_summary['overtime_min'] ) ); ?></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
+
         </div><!-- /.dr-card-body -->
     </div><!-- /.dr-card -->
 
