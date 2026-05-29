@@ -72,6 +72,25 @@ class DR_Compute {
                 }
             }
         }
+        // MAT 勤怠データ取得（地場日用）
+        // crew_code → employee_code 変換
+        $mat_by_date = [];
+        $employee_code_for_mat = $wpdb->get_var( $wpdb->prepare(
+            "SELECT employee_code FROM `{$wpdb->prefix}emp_master`
+             WHERE crew_code COLLATE utf8mb4_unicode_520_ci = %s LIMIT 1",
+            $crew_code
+        ) );
+        if ( $employee_code_for_mat && $employee_code_for_mat !== '―' ) {
+            $mat_rows = $wpdb->get_results( $wpdb->prepare( "
+                SELECT work_date, clock_in, clock_out, break_minutes
+                FROM `{$wpdb->prefix}mat_attendance_daily`
+                WHERE employee_code = %s
+                  AND work_date BETWEEN %s AND %s
+            ", $employee_code_for_mat, $start_date, $end_date ), ARRAY_A );
+            foreach ( (array) $mat_rows as $mr ) {
+                $mat_by_date[ $mr['work_date'] ] = $mr;
+            }
+        }
 
         // 所定休日ルール取得
         $affiliation_id = DR_DB::get_affiliation_id_by_crew( $crew_code );
@@ -202,6 +221,45 @@ class DR_Compute {
                 }
             }
             unset( $r );
+
+                        foreach ( $rows as &$r ) {
+                if ( ! ( $r['jiba'] ?? false ) ) continue;
+                $mat = $mat_by_date[ $r['date'] ] ?? null;
+                if ( ! $mat ) continue;
+
+                $ci = $mat['clock_in']  ? substr( $mat['clock_in'],  0, 5 ) : '';
+                $co = $mat['clock_out'] ? substr( $mat['clock_out'], 0, 5 ) : '';
+                $bm = isset( $mat['break_minutes'] ) && $mat['break_minutes'] !== null
+                    ? (int) $mat['break_minutes'] : 0;
+
+                $r['start_time'] = $ci;
+                $r['end_time']   = $co;
+
+                if ( $ci !== '' && $co !== '' ) {
+                    list( $sh, $sm ) = array_map( 'intval', explode( ':', $ci ) );
+                    list( $eh, $em ) = array_map( 'intval', explode( ':', $co ) );
+                    $start_total = $sh * 60 + $sm;
+                    $end_total   = $eh * 60 + $em;
+                    if ( $end_total <= $start_total ) $end_total += 1440;
+                    $kousoku = $end_total - $start_total;
+                    $labor   = $kousoku - $bm;
+                    $r['kousoku_min']    = $kousoku;
+                    $r['labor_min']      = max( 0, $labor );
+                    $r['break_calc_min'] = $bm;
+                    $r['overtime_min']   = max( 0, $labor - 480 );
+                } else {
+                    $r['kousoku_min']    = null;
+                    $r['labor_min']      = null;
+                    $r['break_calc_min'] = null;
+                    $r['overtime_min']   = null;
+                }
+
+                $r['drive_min']    = null;
+                $r['cargo_min']    = null;
+                $r['midnight_min'] = null;
+            }
+            unset( $r );
+            
             $rows = self::check_alerts_only( $rows );
         } else {
             $rows = self::apply_auto_kintai( $rows );
