@@ -199,20 +199,20 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                                     <?php echo esc_html( Tanpopo_DriverReport::format_min( $row['overtime_min'] ) ); ?>
                                 <?php endif; ?>
                             </td>
+                            <td class="col-jiba">
+                                <label class="dr-jiba-toggle">
+                                    <input type="checkbox"
+                                    class="dr-jiba-input"
+                                    <?php echo ( $row['jiba'] ?? false ) ? 'checked' : ''; ?>>
+                                    <span class="dr-jiba-slider"></span>
+                                </label>
+                            </td>
                             <td class="col-min">
                                 <input type="text"
                                     inputmode="numeric"
                                     class="dr-hayatai-input"
                                     value="<?php echo $row['hayatai_min'] > 0 ? esc_attr( DR_Compute::format_min( $row['hayatai_min'] ) ) : ''; ?>"
                                     placeholder="0:00">
-                            </td>
-                            <td class="col-jiba">
-                                <label class="dr-jiba-toggle">
-                                    <input type="checkbox"
-                                        class="dr-jiba-input"
-                                        <?php echo ( $row['jiba'] ?? false ) ? 'checked' : ''; ?>>
-                                    <span class="dr-jiba-slider"></span>
-                                </label>
                             </td>
                             <td class="col-note">
                                 <input type="text"
