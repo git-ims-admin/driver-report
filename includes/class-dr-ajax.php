@@ -24,10 +24,10 @@ class DR_Ajax {
 
         global $wpdb;
         $table        = $wpdb->prefix . 'dr_holiday_rules';
-        $id           = isset( $_POST['id'] )             ? (int) $_POST['id']                                                        : 0;
-        $affil_id     = isset( $_POST['affiliation_id'] ) ? (int) $_POST['affiliation_id']                                            : 0;
-        $day_of_week  = isset( $_POST['day_of_week'] )    ? (int) $_POST['day_of_week']                                               : 0;
-        $week_numbers = isset( $_POST['week_numbers'] )   ? sanitize_text_field( wp_unslash( $_POST['week_numbers'] ) )               : '';
+        $id           = isset( $_POST['id'] )             ? (int) $_POST['id']                                          : 0;
+        $affil_id     = isset( $_POST['affiliation_id'] ) ? (int) $_POST['affiliation_id']                              : 0;
+        $day_of_week  = isset( $_POST['day_of_week'] )    ? (int) $_POST['day_of_week']                                 : 0;
+        $week_numbers = isset( $_POST['week_numbers'] )   ? sanitize_text_field( wp_unslash( $_POST['week_numbers'] ) ) : '';
 
         if ( ! $affil_id || $week_numbers === '' ) {
             wp_send_json_error( [ 'message' => '所属と対象週は必須です' ] );
@@ -99,24 +99,55 @@ class DR_Ajax {
             $work_date     = sanitize_text_field( $row['date']          ?? '' );
             $kintai_type   = sanitize_text_field( $row['kintai_type']   ?? '' );
             $furikae_label = sanitize_text_field( $row['furikae_label'] ?? '' );
-            $is_manual     = (int) ( $row['is_manual'] ?? 0 );
+            $is_manual     = (int) ( $row['is_manual']   ?? 0 );
+            $hayatai_min   = (int) ( $row['hayatai_min'] ?? 0 );
+            $note          = sanitize_text_field( $row['note'] ?? '' );
 
             if ( ! $work_date ) continue;
 
             $wpdb->query( $wpdb->prepare(
                 "INSERT INTO `{$table}`
-                    (`crew_code`, `work_date`, `kintai_type`, `furikae_label`, `is_manual`)
-                 VALUES (%s, %s, %s, %s, %d)
+                    (`crew_code`, `work_date`, `kintai_type`, `furikae_label`, `is_manual`, `hayatai_min`, `note`)
+                 VALUES (%s, %s, %s, %s, %d, %d, %s)
                  ON DUPLICATE KEY UPDATE
                     `kintai_type`   = VALUES(`kintai_type`),
                     `furikae_label` = VALUES(`furikae_label`),
                     `is_manual`     = VALUES(`is_manual`),
+                    `hayatai_min`   = VALUES(`hayatai_min`),
+                    `note`          = VALUES(`note`),
                     `updated_at`    = NOW()",
-                $crew_code, $work_date, $kintai_type, $furikae_label, $is_manual
+                $crew_code, $work_date, $kintai_type, $furikae_label, $is_manual, $hayatai_min, $note
             ) );
             $saved++;
         }
 
         wp_send_json_success( [ 'saved' => $saved ] );
+    }
+
+    /* ---------------------------------------------------------------
+     * 月間サマリ取得
+     * ------------------------------------------------------------- */
+    public static function get_monthly_summary() {
+        check_ajax_referer( 'dr_holiday_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( -1 );
+
+        $crew_code  = sanitize_text_field( wp_unslash( $_POST['crew_code']  ?? '' ) );
+        $year_month = sanitize_text_field( wp_unslash( $_POST['year_month'] ?? '' ) );
+
+        if ( ! $crew_code || ! $year_month ) {
+            wp_send_json_error( [ 'message' => 'パラメータが不正です' ] );
+        }
+
+        $emp_info     = DR_DB::get_emp_info_by_crew( $crew_code );
+        $monthly_rows = DR_Compute::get_monthly_rows( $crew_code, $year_month, $emp_info['name'] );
+        $weekly       = DR_Compute::get_weekly_summary( $crew_code, $year_month, $monthly_rows );
+        $summary      = DR_Compute::get_monthly_summary( $monthly_rows, $weekly, $crew_code, $year_month );
+
+        // format_min 済みの表示値も合わせて返す
+        $summary['labor_str']    = DR_Compute::format_min( $summary['labor_min'] );
+        $summary['hayatai_str']  = $summary['hayatai_min'] > 0 ? DR_Compute::format_min( $summary['hayatai_min'] ) : '';
+        $summary['overtime_str'] = DR_Compute::format_min( $summary['overtime_min'] );
+
+        wp_send_json_success( $summary );
     }
 }
