@@ -745,6 +745,7 @@ tr[data-auto="false"] .dr-kintai-select {
     border: 1px solid #c3cdd8;
     border-radius: 4px;
     background: #fff;
+    ime-mode: disabled;
 }
 
 .dr-hayatai-input:focus {
