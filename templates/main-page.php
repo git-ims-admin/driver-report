@@ -200,6 +200,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             </td>
                             <td class="col-min">
                                 <input type="text"
+                                    inputmode="numeric"
                                     class="dr-hayatai-input"
                                     value="<?php echo $row['hayatai_min'] > 0 ? esc_attr( DR_Compute::format_min( $row['hayatai_min'] ) ) : ''; ?>"
                                     placeholder="0:00">
