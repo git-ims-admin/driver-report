@@ -147,8 +147,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <th class="col-min">休憩時間</th>
                             <th class="col-min">深夜時間</th>
                             <th class="col-min">日残業</th>
-                            <th class="col-min">早退/遅刻</th>
-                            <th class="col-note">備考</th>
+                            <th class="col-min">振替時間</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -198,17 +197,9 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                                     <?php echo esc_html( Tanpopo_DriverReport::format_min( $row['overtime_min'] ) ); ?>
                                 <?php endif; ?>
                             </td>
-                            <td class="col-min">
-                                <input type="text"
-                                    class="dr-hayatai-input"
-                                    value="<?php echo $row['hayatai_min'] > 0 ? esc_attr( DR_Compute::format_min( $row['hayatai_min'] ) ) : ''; ?>"
-                                    placeholder="0:00">
-                            </td>
-                            <td class="col-note">
-                                <input type="text"
-                                    class="dr-note-input"
-                                    value="<?php echo esc_attr( $row['note'] ?? '' ); ?>"
-                                    placeholder="備考">
+                            <td class="col-min dr-furikae-cell"
+                                data-labor="<?php echo esc_attr( Tanpopo_DriverReport::format_min( $row['labor_min'] ) ); ?>">
+                                <?php echo in_array( $kintai_val, [ '法定振替休', '所定振替休' ], true ) ? esc_html( Tanpopo_DriverReport::format_min( $row['labor_min'] ) ) : ''; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -344,34 +335,34 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                                 <th>有給消化日数</th>
                                 <th>有給残日数</th>
                                 <th>労働時間</th>
-                                <th>早退遅刻時間</th>
+                                <th>振替時間</th>
                                 <th>確定残業時間</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="dr-ms-num" data-ms="attendance"><?php echo (int) $monthly_summary['attendance']; ?><span class="dr-ms-unit">日</span></td>
-                                <td class="dr-ms-num <?php echo $monthly_summary['absent'] > 0 ? 'dr-ms-alert' : ''; ?>" data-ms="absent"><?php echo (int) $monthly_summary['absent']; ?><span class="dr-ms-unit">日</span></td>
-                                <td class="dr-ms-num <?php echo $monthly_summary['holiday_work'] > 0 ? 'dr-ms-warn' : ''; ?>" data-ms="holiday_work"><?php echo (int) $monthly_summary['holiday_work']; ?><span class="dr-ms-unit">日</span></td>
-                                <td class="dr-ms-num" data-ms="paid_consumed">
+                                <td class="dr-ms-num"><?php echo (int) $monthly_summary['attendance']; ?><span class="dr-ms-unit">日</span></td>
+                                <td class="dr-ms-num <?php echo $monthly_summary['absent'] > 0 ? 'dr-ms-alert' : ''; ?>"><?php echo (int) $monthly_summary['absent']; ?><span class="dr-ms-unit">日</span></td>
+                                <td class="dr-ms-num <?php echo $monthly_summary['holiday_work'] > 0 ? 'dr-ms-warn' : ''; ?>"><?php echo (int) $monthly_summary['holiday_work']; ?><span class="dr-ms-unit">日</span></td>
+                                <td class="dr-ms-num">
                                     <?php if ( $monthly_summary['paid_has_data'] ) : ?>
                                         <?php echo number_format( $monthly_summary['paid_consumed'], 1 ); ?><span class="dr-ms-unit">日</span>
                                     <?php else : ?>
                                         <span class="dr-ms-na">―</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="dr-ms-num" data-ms="paid_remaining">
+                                <td class="dr-ms-num">
                                     <?php if ( $monthly_summary['paid_has_data'] ) : ?>
                                         <?php echo number_format( $monthly_summary['paid_remaining'], 1 ); ?><span class="dr-ms-unit">日</span>
                                     <?php else : ?>
                                         <span class="dr-ms-na">―</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="dr-ms-num" data-ms="labor"><?php echo esc_html( DR_Compute::format_min( $monthly_summary['labor_min'] ) ); ?></td>
-                                <td class="dr-ms-num <?php echo $monthly_summary['hayatai_min'] > 0 ? 'dr-ms-warn' : ''; ?>" data-ms="hayatai">
-                                    <?php echo $monthly_summary['hayatai_min'] > 0 ? esc_html( DR_Compute::format_min( $monthly_summary['hayatai_min'] ) ) : '―'; ?>
+                                <td class="dr-ms-num"><?php echo esc_html( DR_Compute::format_min( $monthly_summary['labor_min'] ) ); ?></td>
+                                <td class="dr-ms-num <?php echo $monthly_summary['furikae_min'] > 0 ? 'dr-ms-furikae' : ''; ?>">
+                                    <?php echo $monthly_summary['furikae_min'] > 0 ? esc_html( DR_Compute::format_min( $monthly_summary['furikae_min'] ) ) : '―'; ?>
                                 </td>
-                                <td class="dr-ms-num <?php echo (int)$monthly_summary['overtime_min'] > 0 ? 'dr-ms-over' : ''; ?>" data-ms="overtime"><?php echo esc_html( DR_Compute::format_min( $monthly_summary['overtime_min'] ) ); ?></td>
+                                <td class="dr-ms-num <?php echo (int)$monthly_summary['overtime_min'] > 0 ? 'dr-ms-over' : ''; ?>"><?php echo esc_html( DR_Compute::format_min( $monthly_summary['overtime_min'] ) ); ?></td>
                             </tr>
                         </tbody>
                     </table>

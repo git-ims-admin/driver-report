@@ -96,27 +96,23 @@ class DR_Ajax {
 
         $saved = 0;
         foreach ( $rows_raw as $row ) {
-$work_date     = sanitize_text_field( $row['date']          ?? '' );
+            $work_date     = sanitize_text_field( $row['date']          ?? '' );
             $kintai_type   = sanitize_text_field( $row['kintai_type']   ?? '' );
             $furikae_label = sanitize_text_field( $row['furikae_label'] ?? '' );
-            $is_manual     = (int) ( $row['is_manual']   ?? 0 );
-            $hayatai_min   = (int) ( $row['hayatai_min'] ?? 0 );
-            $note          = sanitize_text_field( $row['note'] ?? '' );
+            $is_manual     = (int) ( $row['is_manual'] ?? 0 );
 
             if ( ! $work_date ) continue;
 
             $wpdb->query( $wpdb->prepare(
                 "INSERT INTO `{$table}`
-                    (`crew_code`, `work_date`, `kintai_type`, `furikae_label`, `is_manual`, `hayatai_min`, `note`)
-                 VALUES (%s, %s, %s, %s, %d, %d, %s)
+                    (`crew_code`, `work_date`, `kintai_type`, `furikae_label`, `is_manual`)
+                 VALUES (%s, %s, %s, %s, %d)
                  ON DUPLICATE KEY UPDATE
                     `kintai_type`   = VALUES(`kintai_type`),
                     `furikae_label` = VALUES(`furikae_label`),
                     `is_manual`     = VALUES(`is_manual`),
-                    `hayatai_min`   = VALUES(`hayatai_min`),
-                    `note`          = VALUES(`note`),
                     `updated_at`    = NOW()",
-                $crew_code, $work_date, $kintai_type, $furikae_label, $is_manual, $hayatai_min, $note
+                $crew_code, $work_date, $kintai_type, $furikae_label, $is_manual
             ) );
             $saved++;
         }
