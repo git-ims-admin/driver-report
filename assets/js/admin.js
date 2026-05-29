@@ -24,11 +24,9 @@
         var $chip = $(this);
         var affil = $chip.data('affil');
 
-        // アクティブチップ切替
         $('.dr-chip').removeClass('dr-chip-active');
         $chip.addClass('dr-chip-active');
 
-        // option の表示切替
         var $select = $('#dr-select-crew');
         var $options = $select.find('option[data-affil]');
 
@@ -44,7 +42,6 @@
             });
         }
 
-        // フィルター後に選択中の値が非表示になったらリセット
         var $selected = $select.find('option:selected');
         if ($selected.val() !== '' && $selected.is(':hidden')) {
             $select.val('');
@@ -53,24 +50,19 @@
         updateBtnState();
     });
 
-    /* ---- 勤怠種別変更 → 振替時間セル表示切替 + data-auto フラグ ---- */
+    /* ---- 勤怠種別変更 → data-auto フラグ ---- */
     $(document).on('change', '.dr-kintai-select', function () {
-        var $sel = $(this);
-        var $row = $sel.closest('tr');
-        var $cell = $row.find('.dr-furikae-cell');
-        var val = $sel.val();
-        var labor = $cell.data('labor');
-
-        // 振替時間セルの表示切替
-        if (val === '法定振替休' || val === '所定振替休') {
-            $cell.text(labor);
-        } else {
-            $cell.text('');
-        }
-
-        // 手動変更フラグを立てる
-        $row.attr('data-auto', 'false');
+        $(this).closest('tr').attr('data-auto', 'false');
     });
+
+    /* ---- H:MM 文字列 → 分（整数）変換 ---- */
+    function parseMin(str) {
+        if (!str || str.trim() === '') return 0;
+        var parts = str.trim().split(':');
+        var h = parseInt(parts[0], 10) || 0;
+        var m = parseInt(parts[1], 10) || 0;
+        return h * 60 + m;
+    }
 
     /* ---- 保存（更新）ボタン ---- */
     $(document).on('click', '#dr-btn-save', function () {
@@ -88,6 +80,9 @@
                 kintai_type: $tr.find('.dr-kintai-select').val() || '',
                 furikae_label: $tr.data('furikae') || '',
                 is_manual: $tr.attr('data-auto') === 'false' ? 1 : 0,
+                jiba: $tr.find('.dr-jiba-input').is(':checked') ? 1 : 0,
+                hayatai_min: parseMin($tr.find('.dr-hayatai-input').val()),
+                note: $tr.find('.dr-note-input').val() || '',
             });
         });
 
@@ -104,6 +99,7 @@
                 $msg.text(res.data.saved + '件を保存しました')
                     .css({ color: '#2c5f2e', background: '#f0fff0', borderLeft: '4px solid #2c5f2e', padding: '8px 20px' })
                     .show();
+                drRefreshSummary(crewCode, month);
             } else {
                 $msg.text('保存に失敗しました：' + (res.data.message || ''))
                     .css({ color: '#7a1a1a', background: '#fff0f0', borderLeft: '4px solid #d63638', padding: '8px 20px' })
@@ -127,8 +123,7 @@
 
     function hmShowMessage(msg, isError) {
         var $m = $('#hm-message');
-        $m.text(msg)
-            .css('color', isError ? '#d63638' : '#2c5f2e');
+        $m.text(msg).css('color', isError ? '#d63638' : '#2c5f2e');
         setTimeout(function () { $m.text(''); }, 4000);
     }
 
@@ -258,5 +253,37 @@
             if (res.success) hmReloadTable();
         });
     });
+    function drRefreshSummary(crewCode, yearMonth) {
+        $.post(drData.ajaxUrl, {
+            action: 'dr_get_monthly_summary',
+            nonce: drData.nonce,
+            crew_code: crewCode,
+            year_month: yearMonth,
+        }, function (res) {
+            if (!res.success) return;
+            var s = res.data;
 
+            // 各セルを data-ms 属性で特定して更新
+            $('[data-ms="attendance"]').html(s.attendance + '<span class="dr-ms-unit">日</span>');
+            $('[data-ms="absent"]').html(s.absent + '<span class="dr-ms-unit">日</span>')
+                .toggleClass('dr-ms-alert', s.absent > 0);
+            $('[data-ms="holiday_work"]').html(s.holiday_work + '<span class="dr-ms-unit">日</span>')
+                .toggleClass('dr-ms-warn', s.holiday_work > 0);
+            $('[data-ms="paid_consumed"]').html(
+                s.paid_has_data
+                    ? parseFloat(s.paid_consumed).toFixed(1) + '<span class="dr-ms-unit">日</span>'
+                    : '<span class="dr-ms-na">―</span>'
+            );
+            $('[data-ms="paid_remaining"]').html(
+                s.paid_has_data
+                    ? parseFloat(s.paid_remaining).toFixed(1) + '<span class="dr-ms-unit">日</span>'
+                    : '<span class="dr-ms-na">―</span>'
+            );
+            $('[data-ms="labor"]').html(s.labor_str);
+            $('[data-ms="hayatai"]').html(s.hayatai_str || '―')
+                .toggleClass('dr-ms-warn', s.hayatai_min > 0);
+            $('[data-ms="overtime"]').html(s.overtime_str)
+                .toggleClass('dr-ms-over', s.overtime_min > 0);
+        });
+    }
 })(jQuery);
