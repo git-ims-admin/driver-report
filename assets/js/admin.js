@@ -80,6 +80,7 @@
                 kintai_type: $tr.find('.dr-kintai-select').val() || '',
                 furikae_label: $tr.data('furikae') || '',
                 is_manual: $tr.attr('data-auto') === 'false' ? 1 : 0,
+                jiba: $tr.find('.dr-jiba-input').is(':checked') ? 1 : 0,
                 hayatai_min: parseMin($tr.find('.dr-hayatai-input').val()),
                 note: $tr.find('.dr-note-input').val() || '',
             });

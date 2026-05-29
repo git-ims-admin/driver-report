@@ -774,3 +774,55 @@ tr[data-auto="false"] .dr-kintai-select {
     border-color: #2e6da4;
     box-shadow: 0 0 0 2px rgba(46, 109, 164, .15);
 }
+
+/* ===============================================================
+   地場トグル
+   ============================================================= */
+.col-jiba {
+    min-width: 52px;
+    text-align: center;
+}
+
+.dr-jiba-toggle {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.dr-jiba-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.dr-jiba-slider {
+    position: absolute;
+    inset: 0;
+    background: #ccc;
+    border-radius: 20px;
+    transition: background .2s;
+}
+
+.dr-jiba-slider::before {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .2s;
+}
+
+.dr-jiba-toggle input:checked+.dr-jiba-slider {
+    background: #2e6da4;
+}
+
+.dr-jiba-toggle input:checked+.dr-jiba-slider::before {
+    transform: translateX(16px);
+}

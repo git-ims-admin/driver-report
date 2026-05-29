@@ -92,6 +92,7 @@ class Tanpopo_DriverReport {
             `kintai_type`    VARCHAR(20)  NOT NULL DEFAULT '',
             `furikae_label`  VARCHAR(30)  NOT NULL DEFAULT '',
             `is_manual`      TINYINT(1)    NOT NULL DEFAULT 0,
+            `jiba`           TINYINT(1)    NOT NULL DEFAULT 0 COMMENT '地場フラグ',
             `hayatai_min`    INT           NOT NULL DEFAULT 0 COMMENT '早退/遅刻時間（分）',
             `note`           VARCHAR(100)  NOT NULL DEFAULT '' COMMENT '備考',
             `updated_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -129,6 +130,9 @@ class Tanpopo_DriverReport {
         } else {
             // 既存テーブルへのカラム追加
             $cols3 = $wpdb->get_col( "DESCRIBE `{$table3}`", 0 );
+            if ( ! in_array( 'jiba', $cols3, true ) ) {
+                $wpdb->query( "ALTER TABLE `{$table3}` ADD COLUMN `jiba` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '地場フラグ' AFTER `is_manual`" );
+            }
             if ( ! in_array( 'hayatai_min', $cols3, true ) ) {
                 $wpdb->query( "ALTER TABLE `{$table3}` ADD COLUMN `hayatai_min` INT NOT NULL DEFAULT 0 COMMENT '早退/遅刻時間（分）' AFTER `is_manual`" );
             }

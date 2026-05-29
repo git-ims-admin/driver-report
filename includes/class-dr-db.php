@@ -110,7 +110,7 @@ class DR_DB {
         $start = $year_month . '-01';
         $end   = date( 'Y-m-t', strtotime( $start ) );
         $rows  = $wpdb->get_results( $wpdb->prepare( "
-            SELECT work_date, kintai_type, furikae_label, is_manual, hayatai_min, note
+            SELECT work_date, kintai_type, furikae_label, is_manual, jiba, hayatai_min, note
             FROM `{$wpdb->prefix}dr_kintai_log`
             WHERE crew_code COLLATE utf8mb4_unicode_520_ci = %s
               AND work_date BETWEEN %s AND %s

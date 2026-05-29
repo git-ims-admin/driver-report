@@ -100,6 +100,7 @@ class DR_Ajax {
             $kintai_type   = sanitize_text_field( $row['kintai_type']   ?? '' );
             $furikae_label = sanitize_text_field( $row['furikae_label'] ?? '' );
             $is_manual     = (int) ( $row['is_manual']   ?? 0 );
+            $jiba          = (int) ( $row['jiba']        ?? 0 );
             $hayatai_min   = (int) ( $row['hayatai_min'] ?? 0 );
             $note          = sanitize_text_field( $row['note'] ?? '' );
 
@@ -107,16 +108,17 @@ class DR_Ajax {
 
             $wpdb->query( $wpdb->prepare(
                 "INSERT INTO `{$table}`
-                    (`crew_code`, `work_date`, `kintai_type`, `furikae_label`, `is_manual`, `hayatai_min`, `note`)
-                 VALUES (%s, %s, %s, %s, %d, %d, %s)
+                    (`crew_code`, `work_date`, `kintai_type`, `furikae_label`, `is_manual`, `jiba`, `hayatai_min`, `note`)
+                 VALUES (%s, %s, %s, %s, %d, %d, %d, %s)
                  ON DUPLICATE KEY UPDATE
                     `kintai_type`   = VALUES(`kintai_type`),
                     `furikae_label` = VALUES(`furikae_label`),
                     `is_manual`     = VALUES(`is_manual`),
+                    `jiba`          = VALUES(`jiba`),
                     `hayatai_min`   = VALUES(`hayatai_min`),
                     `note`          = VALUES(`note`),
                     `updated_at`    = NOW()",
-                $crew_code, $work_date, $kintai_type, $furikae_label, $is_manual, $hayatai_min, $note
+                $crew_code, $work_date, $kintai_type, $furikae_label, $is_manual, $jiba, $hayatai_min, $note
             ) );
             $saved++;
         }

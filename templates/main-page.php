@@ -147,6 +147,7 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                             <th class="col-min">休憩時間</th>
                             <th class="col-min">深夜時間</th>
                             <th class="col-min">日残業</th>
+                             <th class="col-jiba">地場</th>
                             <th class="col-min">早退/遅刻</th>
                             <th class="col-note">備考</th>
                         </tr>
@@ -204,6 +205,14 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
                                     class="dr-hayatai-input"
                                     value="<?php echo $row['hayatai_min'] > 0 ? esc_attr( DR_Compute::format_min( $row['hayatai_min'] ) ) : ''; ?>"
                                     placeholder="0:00">
+                            </td>
+                            <td class="col-jiba">
+                                <label class="dr-jiba-toggle">
+                                    <input type="checkbox"
+                                        class="dr-jiba-input"
+                                        <?php echo ( $row['jiba'] ?? false ) ? 'checked' : ''; ?>>
+                                    <span class="dr-jiba-slider"></span>
+                                </label>
                             </td>
                             <td class="col-note">
                                 <input type="text"

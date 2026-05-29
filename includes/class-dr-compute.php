@@ -171,6 +171,7 @@ class DR_Compute {
                 'default_kintai'    => $default_kintai,
                 'furikae_label'     => '',
                 'is_manual'         => false,
+                'jiba'              => false,
                 'hayatai_min'       => 0,
                 'note'              => '',
                 'start_time'        => $start_time,
@@ -195,6 +196,7 @@ class DR_Compute {
                     $r['default_kintai'] = $saved['kintai_type'];
                     $r['furikae_label']  = $saved['furikae_label'];
                     $r['is_manual']      = (bool) $saved['is_manual'];
+                    $r['jiba']           = (bool) ( $saved['jiba']        ?? false );
                     $r['hayatai_min']    = (int) ( $saved['hayatai_min'] ?? 0 );
                     $r['note']           = $saved['note'] ?? '';
                 }
