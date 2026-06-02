@@ -100,6 +100,7 @@
                     .css({ color: '#2c5f2e', background: '#f0fff0', borderLeft: '4px solid #2c5f2e', padding: '8px 20px' })
                     .show();
                 drRefreshSummary(crewCode, month);
+                $('tbody tr[data-date][data-auto="false"]').attr('data-auto', 'saved');
             } else {
                 $msg.text('保存に失敗しました：' + (res.data.message || ''))
                     .css({ color: '#7a1a1a', background: '#fff0f0', borderLeft: '4px solid #d63638', padding: '8px 20px' })
