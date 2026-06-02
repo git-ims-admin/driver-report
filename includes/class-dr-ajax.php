@@ -152,4 +152,39 @@ class DR_Ajax {
 
         wp_send_json_success( $summary );
     }
+    /* ---------------------------------------------------------------
+     * 日次行データ取得（保存後の画面更新用）
+     * ------------------------------------------------------------- */
+    public static function get_daily_rows() {
+        check_ajax_referer( 'dr_holiday_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( -1 );
+
+        $crew_code  = sanitize_text_field( wp_unslash( $_POST['crew_code']  ?? '' ) );
+        $year_month = sanitize_text_field( wp_unslash( $_POST['year_month'] ?? '' ) );
+
+        if ( ! $crew_code || ! $year_month ) {
+            wp_send_json_error( [ 'message' => 'パラメータが不正です' ] );
+        }
+
+        $emp_info     = DR_DB::get_emp_info_by_crew( $crew_code );
+        $monthly_rows = DR_Compute::get_monthly_rows( $crew_code, $year_month, $emp_info['name'] );
+
+        $rows = [];
+        foreach ( $monthly_rows as $r ) {
+            $rows[] = [
+                'date'        => $r['date'],
+                'start_time'  => $r['start_time']      ?? '',
+                'end_time'    => $r['end_time']         ?? '',
+                'kousoku_min' => DR_Compute::format_min( $r['kousoku_min'] ),
+                'labor_min'   => DR_Compute::format_min( $r['labor_min'] ),
+                'drive_min'   => DR_Compute::format_min( $r['drive_min'] ),
+                'cargo_min'   => DR_Compute::format_min( $r['cargo_min'] ),
+                'break_min'   => DR_Compute::format_min( $r['break_calc_min'] ),
+                'midnight_min'=> DR_Compute::format_min( $r['midnight_min'] ),
+                'overtime_min'=> DR_Compute::format_min( $r['overtime_min'] ),
+            ];
+        }
+
+        wp_send_json_success( $rows );
+    }
 }

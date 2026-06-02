@@ -100,7 +100,7 @@
                     .css({ color: '#2c5f2e', background: '#f0fff0', borderLeft: '4px solid #2c5f2e', padding: '8px 20px' })
                     .show();
                 drRefreshSummary(crewCode, month);
-                $('tbody tr[data-date][data-auto="false"]').attr('data-auto', 'saved');
+                drRefreshDailyRows(crewCode, month);
             } else {
                 $msg.text('保存に失敗しました：' + (res.data.message || ''))
                     .css({ color: '#7a1a1a', background: '#fff0f0', borderLeft: '4px solid #d63638', padding: '8px 20px' })
@@ -285,6 +285,30 @@
                 .toggleClass('dr-ms-warn', s.hayatai_min > 0);
             $('[data-ms="overtime"]').html(s.overtime_str)
                 .toggleClass('dr-ms-over', s.overtime_min > 0);
+        });
+    }
+    /* ---- 日次行データ再描画 ---- */
+    function drRefreshDailyRows(crewCode, yearMonth) {
+        $.post(drData.ajaxUrl, {
+            action: 'dr_get_daily_rows',
+            nonce: drData.nonce,
+            crew_code: crewCode,
+            year_month: yearMonth,
+        }, function (res) {
+            if (!res.success) return;
+            $.each(res.data, function (_, r) {
+                var $tr = $('tbody tr[data-date="' + r.date + '"]');
+                if (!$tr.length) return;
+                $tr.find('td:nth-child(3)').text(r.start_time);
+                $tr.find('td:nth-child(4)').text(r.end_time);
+                $tr.find('td:nth-child(5)').text(r.kousoku_min);
+                $tr.find('td:nth-child(6)').text(r.labor_min);
+                $tr.find('td:nth-child(7)').text(r.drive_min);
+                $tr.find('td:nth-child(8)').text(r.cargo_min);
+                $tr.find('td:nth-child(9)').text(r.break_min);
+                $tr.find('td:nth-child(10)').text(r.midnight_min);
+                $tr.find('td:nth-child(11)').text(r.overtime_min);
+            });
         });
     }
 })(jQuery);

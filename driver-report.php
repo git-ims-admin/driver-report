@@ -4,7 +4,7 @@
  * Description: 長距離ドライバーの勤怠データを収集・表示・CSV出力するプラグイン
  * Version:     1.3.0
  * Author:      有限会社たんぽぽ運送
- */
+*/
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
@@ -37,6 +37,7 @@ class Tanpopo_DriverReport {
         add_action( 'wp_ajax_dr_kintai_save',         [ 'DR_Ajax', 'kintai_save' ] );
         add_action( 'wp_ajax_dr_kintai_save',          [ 'DR_Ajax', 'kintai_save' ] );
         add_action( 'wp_ajax_dr_get_monthly_summary',  [ 'DR_Ajax', 'get_monthly_summary' ] );
+        add_action( 'wp_ajax_dr_get_daily_rows', [ 'DR_Ajax', 'get_daily_rows' ] );
     }
 
     /* ---------------------------------------------------------------
