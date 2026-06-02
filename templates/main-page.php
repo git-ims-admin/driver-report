@@ -85,10 +85,22 @@ $page_url = admin_url( 'admin.php?page=driver-report' );
 
     <!-- 集計結果 -->
     <div class="dr-card">
+        <?php
+        $prev_month = date( 'Y-m', strtotime( $selected_month . '-01 -1 month' ) );
+        $next_month = date( 'Y-m', strtotime( $selected_month . '-01 +1 month' ) );
+        $prev_url   = esc_url( add_query_arg( [ 'page' => 'driver-report', 'dr_crew' => $selected_crew, 'dr_month' => $prev_month ], admin_url( 'admin.php' ) ) );
+        $next_url   = esc_url( add_query_arg( [ 'page' => 'driver-report', 'dr_crew' => $selected_crew, 'dr_month' => $next_month ], admin_url( 'admin.php' ) ) );
+        ?>
         <div class="dr-card-header" style="justify-content:space-between;">
-            <span>
+            <span style="display:flex;align-items:center;gap:12px;">
                 <span class="dashicons dashicons-id-alt"></span>
-                <?php echo esc_html( $selected_month ); ?>　<?php echo esc_html( $emp_info['name'] ); ?> さんの集計表
+                <a href="<?php echo $prev_url; ?>" class="dr-btn dr-btn-nav" title="前月">
+                    <span class="dashicons dashicons-arrow-left-alt2"></span>
+                </a>
+                <span><?php echo esc_html( $selected_month ); ?>　<?php echo esc_html( $emp_info['name'] ); ?> さんの集計表</span>
+                <a href="<?php echo $next_url; ?>" class="dr-btn dr-btn-nav" title="翌月">
+                    <span class="dashicons dashicons-arrow-right-alt2"></span>
+                </a>
             </span>
             <button type="button" id="dr-btn-save"
                 class="dr-btn dr-btn-save"
