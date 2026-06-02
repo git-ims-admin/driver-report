@@ -101,6 +101,7 @@
                     .show();
                 drRefreshSummary(crewCode, month);
                 drRefreshDailyRows(crewCode, month);
+                drRefreshWeeklyRows(crewCode, month);
             } else {
                 $msg.text('保存に失敗しました：' + (res.data.message || ''))
                     .css({ color: '#7a1a1a', background: '#fff0f0', borderLeft: '4px solid #d63638', padding: '8px 20px' })
@@ -309,6 +310,59 @@
                 $tr.find('td:nth-child(10)').text(r.midnight_min);
                 $tr.find('td:nth-child(11)').text(r.overtime_min);
             });
+        });
+    }
+    /* ---- 週次サマリー再描画 ---- */
+    function drRefreshWeeklyRows(crewCode, yearMonth) {
+        $.post(drData.ajaxUrl, {
+            action: 'dr_get_weekly_rows',
+            nonce: drData.nonce,
+            crew_code: crewCode,
+            year_month: yearMonth,
+        }, function (res) {
+            if (!res.success) return;
+            var $rows = $('.dr-weekly-table tbody tr');
+            var dataRows = res.data.filter(function (r) { return r.label !== '__total__'; });
+            var totalRow = res.data.find(function (r) { return r.label === '__total__'; });
+
+            dataRows.forEach(function (r, i) {
+                var $tr = $rows.eq(i);
+                if (!$tr.length) return;
+
+                if (r.is_prev_carry) {
+                    $tr.find('td:nth-child(11)').text(r.day_overtime_min);
+                    $tr.find('td:nth-child(12)').text(r.week_overtime_min || '');
+                    return;
+                }
+
+                $tr.find('td:nth-child(5)').text(r.kousoku_min);
+                $tr.find('td:nth-child(6)').text(r.labor_min);
+                $tr.find('td:nth-child(7)').text(r.drive_min);
+                $tr.find('td:nth-child(8)').text(r.cargo_min);
+                $tr.find('td:nth-child(9)').text(r.break_min);
+                $tr.find('td:nth-child(10)').text(r.midnight_min);
+                $tr.find('td:nth-child(11)').text(r.day_overtime_min);
+                if (r.is_carryover_badge) {
+                    $tr.find('td:nth-child(12)').html('<span class="dr-badge-carryover">次月繰越</span>');
+                } else {
+                    $tr.find('td:nth-child(12)').text(r.week_overtime_min || '');
+                }
+                $tr.find('td:nth-child(13)').text(r.confirmed_overtime);
+            });
+
+            // 合計行（tfoot）
+            if (totalRow) {
+                var $tfoot = $('.dr-weekly-table tfoot tr');
+                $tfoot.find('td:nth-child(5)').text(totalRow.kousoku_min);
+                $tfoot.find('td:nth-child(6)').text(totalRow.labor_min);
+                $tfoot.find('td:nth-child(7)').text(totalRow.drive_min);
+                $tfoot.find('td:nth-child(8)').text(totalRow.cargo_min);
+                $tfoot.find('td:nth-child(9)').text(totalRow.break_min);
+                $tfoot.find('td:nth-child(10)').text(totalRow.midnight_min);
+                $tfoot.find('td:nth-child(11)').text(totalRow.day_overtime_min);
+                $tfoot.find('td:nth-child(12)').text(totalRow.week_overtime_min);
+                $tfoot.find('td:nth-child(13)').text(totalRow.confirmed_overtime);
+            }
         });
     }
 })(jQuery);

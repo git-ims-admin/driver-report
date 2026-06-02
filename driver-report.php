@@ -38,6 +38,7 @@ class Tanpopo_DriverReport {
         add_action( 'wp_ajax_dr_kintai_save',          [ 'DR_Ajax', 'kintai_save' ] );
         add_action( 'wp_ajax_dr_get_monthly_summary',  [ 'DR_Ajax', 'get_monthly_summary' ] );
         add_action( 'wp_ajax_dr_get_daily_rows', [ 'DR_Ajax', 'get_daily_rows' ] );
+        add_action( 'wp_ajax_dr_get_weekly_rows', [ 'DR_Ajax', 'get_weekly_rows' ] );
     }
 
     /* ---------------------------------------------------------------

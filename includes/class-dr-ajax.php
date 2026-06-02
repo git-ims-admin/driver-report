@@ -187,4 +187,60 @@ class DR_Ajax {
 
         wp_send_json_success( $rows );
     }
+    /* ---------------------------------------------------------------
+     * 週次サマリーデータ取得（保存後の画面更新用）
+     * ------------------------------------------------------------- */
+    public static function get_weekly_rows() {
+        check_ajax_referer( 'dr_holiday_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) wp_die( -1 );
+
+        $crew_code  = sanitize_text_field( wp_unslash( $_POST['crew_code']  ?? '' ) );
+        $year_month = sanitize_text_field( wp_unslash( $_POST['year_month'] ?? '' ) );
+
+        if ( ! $crew_code || ! $year_month ) {
+            wp_send_json_error( [ 'message' => 'パラメータが不正です' ] );
+        }
+
+        $emp_info     = DR_DB::get_emp_info_by_crew( $crew_code );
+        $monthly_rows = DR_Compute::get_monthly_rows( $crew_code, $year_month, $emp_info['name'] );
+        $weekly       = DR_Compute::get_weekly_summary( $crew_code, $year_month, $monthly_rows );
+
+        $result = [];
+        foreach ( $weekly['weeks'] as $w ) {
+            $result[] = [
+                'label'              => $w['label'],
+                'is_prev_carry'      => $w['is_prev_carry'],
+                'is_carryover'       => $w['is_carryover'],
+                'carry_days'         => $w['carry_days'] ?? 0,
+                'kousoku_min'        => DR_Compute::format_min( $w['kousoku_min'] ),
+                'labor_min'          => DR_Compute::format_min( $w['labor_min'] ),
+                'drive_min'          => DR_Compute::format_min( $w['drive_min'] ),
+                'cargo_min'          => DR_Compute::format_min( $w['cargo_min'] ),
+                'break_min'          => DR_Compute::format_min( $w['break_min'] ),
+                'midnight_min'       => DR_Compute::format_min( $w['midnight_min'] ),
+                'day_overtime_min'   => DR_Compute::format_min( $w['day_overtime_min'] ),
+                'week_overtime_min'  => $w['is_carryover'] ? null : DR_Compute::format_min( $w['week_overtime_min'] ),
+                'confirmed_overtime' => DR_Compute::format_min( $w['confirmed_overtime'] ),
+                'is_carryover_badge' => $w['is_carryover'],
+                'carry_days_val'     => $w['carry_days'] ?? 0,
+            ];
+        }
+
+        // 合計行
+        $total = $weekly['total'];
+        $result[] = [
+            'label'              => '__total__',
+            'kousoku_min'        => DR_Compute::format_min( $total['kousoku_min'] ),
+            'labor_min'          => DR_Compute::format_min( $total['labor_min'] ),
+            'drive_min'          => DR_Compute::format_min( $total['drive_min'] ),
+            'cargo_min'          => DR_Compute::format_min( $total['cargo_min'] ),
+            'break_min'          => DR_Compute::format_min( $total['break_min'] ),
+            'midnight_min'       => DR_Compute::format_min( $total['midnight_min'] ),
+            'day_overtime_min'   => DR_Compute::format_min( $total['day_overtime_min'] ),
+            'week_overtime_min'  => DR_Compute::format_min( $total['week_overtime_min'] ),
+            'confirmed_overtime' => DR_Compute::format_min( $total['confirmed_overtime'] ),
+        ];
+
+        wp_send_json_success( $result );
+    }
 }
