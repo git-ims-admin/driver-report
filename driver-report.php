@@ -176,7 +176,7 @@ class Tanpopo_DriverReport {
         wp_enqueue_style( 'dr-admin', DR_PLUGIN_URL . 'assets/css/admin.css', [], DR_VERSION );
         wp_enqueue_script( 'dr-admin', DR_PLUGIN_URL . 'assets/js/admin.js', [ 'jquery' ], DR_VERSION, true );
         wp_localize_script( 'dr-admin', 'drData', [
-            'defaultMonth' => date( 'Y-m', strtotime( 'first day of last month' ) ),
+            'defaultMonth' => date( 'Y-m' ),
             'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
             'nonce'        => wp_create_nonce( 'dr_holiday_nonce' ),
         ] );
@@ -191,7 +191,7 @@ class Tanpopo_DriverReport {
         $db_error  = $result['error'];
 
         $selected_crew  = isset( $_GET['dr_crew'] )  ? sanitize_text_field( wp_unslash( $_GET['dr_crew'] ) )  : '';
-        $selected_month = isset( $_GET['dr_month'] ) ? sanitize_text_field( wp_unslash( $_GET['dr_month'] ) ) : date( 'Y-m', strtotime( 'first day of last month' ) );
+        $selected_month = isset( $_GET['dr_month'] ) ? sanitize_text_field( wp_unslash( $_GET['dr_month'] ) ) : date( 'Y-m' );
 
         $emp_info        = null;
         $monthly_rows    = [];
