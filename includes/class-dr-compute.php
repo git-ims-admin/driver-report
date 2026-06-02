@@ -257,6 +257,7 @@ class DR_Compute {
                 $r['drive_min']    = null;
                 $r['cargo_min']    = null;
                 $r['midnight_min'] = null;
+                $r['has_data']     = true;
             }
             unset( $r );
             
